@@ -33,7 +33,6 @@ const uint16_t MESSAGE_LENGTH = (int)(sizeof(DEMO_MESSAGE)/sizeof(char));
 
 uint8_t led_stat;     // コントローラについてる4つのbarLEDの点灯状態
 uint8_t digitPtr = 0; // 現在表示している桁数
-bool    tmrIsr = false;    // タイマー割り込みがあったことをmainに伝えるのに使う
 bool    showDemoMessage = false;
 
 //初期値"*********"
@@ -172,11 +171,6 @@ void main(void) {
                 segMap[digitSelector] = ~(fontList[RxData] | (dotflag << 16)); // 値を実際にセット
             }
         }
-        if (tmrIsr == true) {
-            tmrIsr = false;
-            //refreshShiftRegister(digitPtr);
-            //digitPtr = (digitPtr+1)%9;      // digitPtrを次の値にセット
-        }
         
     }
 }
@@ -204,7 +198,6 @@ void handleMessage() {
 void __interrupt() isr(void) {
     if (PIR1bits.TMR2IF) {
         PIR1bits.TMR2IF = 0;    // フラグを下げる
-        tmrIsr = true;
         if (showDemoMessage) handleMessage();
         refreshShiftRegister(digitPtr);
         digitPtr = (digitPtr+1)%9;      // digitPtrを次の値にセット
