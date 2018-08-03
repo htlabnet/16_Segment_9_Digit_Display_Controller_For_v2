@@ -105,8 +105,10 @@ void main(void) {
     TRISA  = 0b00000111;
     TRISB  = 0b00000000;
     TRISC  = 0b10000000; //Rxのみ入力
-    TRISD  = 0b00000000;
+    TRISD  = 0b11111111;
     TRISE  = 0b00000000;
+    
+    PORTEbits.RDPU = 1;
 
     LATCbits.LATC0 = 0; // OUTPUT ENABLE
     LATCbits.LATC1 = 1; // CLEAR
@@ -150,7 +152,7 @@ void main(void) {
     uint32_t dotflag;  // ドットをつけるかどうか
     
     // TODO: dipスイッチの状態をここに入力する
-    showDemoMessage = true;
+    showDemoMessage = LATDbits.LATD0;
     
     while (1){
         
