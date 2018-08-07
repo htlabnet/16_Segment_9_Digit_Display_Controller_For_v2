@@ -101,7 +101,7 @@ void main(void) {
 
     ADCON1 = 0b00001111; //All Digital
     CMCON  = 0b00000111; //No Comparator
-    TRISA  = 0b00000111;
+    TRISA  = 0b00001111;
     TRISB  = 0b00000000;
     TRISC  = 0b10000000; //Rxのみ入力
     TRISD  = 0b11111111;
