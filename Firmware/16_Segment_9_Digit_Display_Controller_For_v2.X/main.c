@@ -127,13 +127,17 @@ void main(void) {
     */
 
     //タイマー設定。比較機が使えるTimer2を使う
-    T2CON = 0;
-    TMR2 = 0;
-    PR2 = 125;
-    T2CON = 0b01111101;
+    //TMR2 = 0;
+    //PR2 = 125;
+    //T2CON = 0b01111101;
+    
+    // LED制御のタイマー設定
+    T0CON = 0b11000101; //Timer0 ON, 8Bit Mode, InternalClock, 1/64 Prescale
+    TMR0 = 0xFF - 125+1;
 
     //各種割り込み許可
-    PIE1bits.TMR2IE = 1;
+    //PIE1bits.TMR2IE = 1;
+    INTCONbits.TMR0IE = 1;
     INTCONbits.PEIE = 1;
     INTCONbits.GIE = 1;
 
@@ -196,10 +200,19 @@ void handleMessage() {
 
 //次の桁を表示する
 void __interrupt() isr(void) {
+    if (INTCONbits.TMR0IF) {
+        INTCONbits.TMR0IF = 0;    // フラグを下げる
+        TMR0 = 0xFF - 125+1;
+        if (showDemoMessage) handleMessage();
+        refreshShiftRegister(digitPtr);
+        digitPtr = (digitPtr+1)%9;      // digitPtrを次の値にセット
+    }
+    /*
     if (PIR1bits.TMR2IF) {
         PIR1bits.TMR2IF = 0;    // フラグを下げる
         if (showDemoMessage) handleMessage();
         refreshShiftRegister(digitPtr);
         digitPtr = (digitPtr+1)%9;      // digitPtrを次の値にセット
     }
+    */
 }
