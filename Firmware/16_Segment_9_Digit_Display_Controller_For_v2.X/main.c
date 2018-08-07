@@ -19,6 +19,14 @@
 #include <string.h>
 #include <stdbool.h>
 
+#include "system.h"
+
+#include "usb.h"
+#include "usb_device_hid.h"
+
+#include "app_device_custom_hid.h"
+#include "app_led_usb_status.h"
+
 #pragma config FOSC  = HS       // 20MHz Xtal(分周なし)
 #pragma config MCLRE = ON       // リセットピンを利用する
 #pragma config LVP   = OFF      // 低電圧プログラミング機能使用しない(OFF)
@@ -157,7 +165,15 @@ void main(void) {
     // TODO: dipスイッチの状態をここに入力する
     showDemoMessage = LATDbits.LATD0;
     
+    //Init USB
+    //SYSTEM_Initialize(SYSTEM_STATE_USB_START);
+
+    //USBDeviceInit();
+    //USBDeviceAttach();
+    
     while (1){
+        
+        //SYSTEM_Tasks();
         
         if (PIR1bits.RCIF) {
             PIR1bits.RCIF = 0;           //フラグを下げる
@@ -175,6 +191,8 @@ void main(void) {
                 segMap[digitSelector] = ~(fontList[RxData] | (dotflag << 16)); // 値を実際にセット
             }
         }
+        
+        //APP_DeviceCustomHIDTasks();
         
     }
 }
@@ -199,7 +217,7 @@ void handleMessage() {
 }
 
 //次の桁を表示する
-void __interrupt() isr(void) {
+void interrupt isr(void) {
     if (INTCONbits.TMR0IF) {
         INTCONbits.TMR0IF = 0;    // フラグを下げる
         TMR0 = 0xFF - 125+1;
@@ -207,6 +225,11 @@ void __interrupt() isr(void) {
         refreshShiftRegister(digitPtr);
         digitPtr = (digitPtr+1)%9;      // digitPtrを次の値にセット
     }
+    
+    #if defined(USB_INTERRUPT)
+    //    USBDeviceTasks();
+    #endif
+    
     /*
     if (PIR1bits.TMR2IF) {
         PIR1bits.TMR2IF = 0;    // フラグを下げる
