@@ -52,7 +52,7 @@ typedef enum
 * Output: None
 *
 ********************************************************************/
-void SYSTEM_Initialize( SYSTEM_STATE state );
+//void SYSTEM_Initialize( SYSTEM_STATE state );
 
 
 /*********************************************************************

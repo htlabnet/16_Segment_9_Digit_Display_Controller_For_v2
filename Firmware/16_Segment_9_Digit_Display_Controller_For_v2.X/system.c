@@ -77,6 +77,7 @@ please contact mla_licensing@microchip.com
 * Output: None
 *
 ********************************************************************/
+/*
 void SYSTEM_Initialize( SYSTEM_STATE state )
 {
     switch(state)
@@ -98,6 +99,7 @@ void SYSTEM_Initialize( SYSTEM_STATE state )
             break;
     }
 }
+ */
 
 			
 			

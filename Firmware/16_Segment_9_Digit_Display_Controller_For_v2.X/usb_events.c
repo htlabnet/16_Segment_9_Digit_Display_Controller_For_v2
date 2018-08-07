@@ -71,7 +71,7 @@ bool USER_USB_CALLBACK_EVENT_HANDLER(USB_EVENT event, void *pdata, uint16_t size
             //would normally be done in USB compliant bus powered applications, although
             //no further processing is needed for purely self powered applications that
             //don't consume power from the host.
-            SYSTEM_Initialize(SYSTEM_STATE_USB_SUSPEND);
+            //SYSTEM_Initialize(SYSTEM_STATE_USB_SUSPEND);
             break;
 
         case EVENT_RESUME:
@@ -82,7 +82,7 @@ bool USER_USB_CALLBACK_EVENT_HANDLER(USB_EVENT event, void *pdata, uint16_t size
             //restore I/O pins to higher power states if they were changed during the 
             //preceding SYSTEM_Initialize(SYSTEM_STATE_USB_SUSPEND) call at the start
             //of the suspend condition.
-            SYSTEM_Initialize(SYSTEM_STATE_USB_RESUME);
+            //SYSTEM_Initialize(SYSTEM_STATE_USB_RESUME);
             break;
 
         case EVENT_CONFIGURED:

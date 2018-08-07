@@ -162,18 +162,14 @@ void main(void) {
     uint8_t digitSelector;    // 書き換え桁数
     uint32_t dotflag;  // ドットをつけるかどうか
     
-    // TODO: dipスイッチの状態をここに入力する
     showDemoMessage = LATDbits.LATD0;
     
-    //Init USB
-    //SYSTEM_Initialize(SYSTEM_STATE_USB_START);
-
-    //USBDeviceInit();
-    //USBDeviceAttach();
+    USBDeviceInit();
+    USBDeviceAttach();
     
     while (1){
         
-        //SYSTEM_Tasks();
+        SYSTEM_Tasks();
         
         if (PIR1bits.RCIF) {
             PIR1bits.RCIF = 0;           //フラグを下げる
@@ -192,7 +188,7 @@ void main(void) {
             }
         }
         
-        //APP_DeviceCustomHIDTasks();
+        APP_DeviceCustomHIDTasks();
         
     }
 }
@@ -227,7 +223,7 @@ void interrupt isr(void) {
     }
     
     #if defined(USB_INTERRUPT)
-    //    USBDeviceTasks();
+        USBDeviceTasks();
     #endif
     
     /*
