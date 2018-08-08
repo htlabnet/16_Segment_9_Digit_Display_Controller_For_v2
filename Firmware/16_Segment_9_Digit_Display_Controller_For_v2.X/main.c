@@ -33,7 +33,7 @@ void main(void) {
     ADCON1 = 0b00001111; //All Digital
     CMCON  = 0b00000111; //No Comparator
     TRISA  = 0b00001111;
-    TRISB  = 0b00000000;
+    TRISB  = 0b00000011;
     TRISC  = 0b10000000; //Rxのみ入力
     TRISD  = 0b11111111;
     TRISE  = 0b00000000;
@@ -90,11 +90,9 @@ void main(void) {
     USBDeviceInit();
     USBDeviceAttach();
     
-    showBinary(10);
-    
     i2c_enable_master(99);
     i2c_start();
-    i2c_send_byte(0x68); // Address
+    i2c_send_byte(0xD0); // Address
     i2c_send_byte(0x00);
     i2c_send_byte(0x45); // Seconds
     i2c_send_byte(0x59); // Minutes
@@ -105,18 +103,24 @@ void main(void) {
     i2c_send_byte(0x17); // Year
     i2c_stop();
     
-    i2c_start();
-    i2c_send_byte(0x68); // Address
-    i2c_send_byte(0x00);
     
-    uint8_t rtcdata[8];
-    for (int i = 0; i < 8; i++) {
+    i2c_start();
+    i2c_send_byte(0xD0); // Address
+    i2c_send_byte(0x00);
+    i2c_stop();
+    
+    i2c_start();
+    i2c_send_byte(0xD1); // Address
+    
+    uint8_t rtcdata[7];
+    for (int i = 0; i < 7; i++) {
         rtcdata[i] = i2c_read_byte(true);
     }
     
     i2c_stop();
     
-    //showBinary(rtcdata[0]);
+    
+    showBinary(rtcdata[5]);
     
     while (1){
         
