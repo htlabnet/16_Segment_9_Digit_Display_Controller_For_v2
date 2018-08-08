@@ -36,7 +36,7 @@ void main(void) {
     TRISB  = 0b00000011;
     TRISC  = 0b10000000; //Rxのみ入力
     TRISD  = 0b11111111;
-    TRISE  = 0b00000000;
+    TRISE  = 0b00000111;
     
     PORTEbits.RDPU = 1;
 
@@ -85,11 +85,13 @@ void main(void) {
     uint8_t digitSelector;    // 書き換え桁数
     uint32_t dotflag;  // ドットをつけるかどうか
     
-    //showDemoMessage = LATDbits.LATD0;
+    while (PORTDbits.RD7);
+    showDemoMessage = PORTDbits.RD0;
     
     USBDeviceInit();
     USBDeviceAttach();
     
+    /*
     i2c_enable_master(99);
     i2c_start();
     i2c_send_byte(0xD0); // Address
@@ -118,9 +120,7 @@ void main(void) {
     }
     
     i2c_stop();
-    
-    
-    showBinary(rtcdata[5]);
+    */
     
     while (1){
         
