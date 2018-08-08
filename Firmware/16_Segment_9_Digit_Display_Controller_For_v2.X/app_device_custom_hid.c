@@ -129,13 +129,14 @@ void APP_DeviceCustomHIDTasks()
         switch(ReceivedDataBuffer[0])				//Look at the data the host sent, to see what kind of application specific command it sent.
         {
             case COMMAND_TOGGLE_LED:  //Toggle LEDs command
-                LED_Toggle(LED_USB_DEVICE_HID_CUSTOM);
+                //LED_Toggle(LED_USB_DEVICE_HID_CUSTOM);
                 break;
             case COMMAND_GET_BUTTON_STATUS:  //Get push button state
                 //Check to make sure the endpoint/buffer is free before we modify the contents
                 if(!HIDTxHandleBusy(USBInHandle))
                 {
                     ToSendDataBuffer[0] = 0x81;				//Echo back to the host PC the command we are fulfilling in the first uint8_t.  In this case, the Get Pushbutton State command.
+                    /*
                     if(BUTTON_IsPressed(BUTTON_USB_DEVICE_HID_CUSTOM) == false)	//pushbutton not pressed, pull up resistor on circuit board is pulling the PORT pin high
                     {
                             ToSendDataBuffer[1] = 0x01;
@@ -144,6 +145,7 @@ void APP_DeviceCustomHIDTasks()
                     {
                             ToSendDataBuffer[1] = 0x00;
                     }
+                    */
                     //Prepare the USB module to send the data packet to the host
                     USBInHandle = HIDTxPacket(CUSTOM_DEVICE_HID_EP, (uint8_t*)&ToSendDataBuffer[0],64);
                 }
@@ -161,12 +163,13 @@ void APP_DeviceCustomHIDTasks()
                         //This function call will still measure the analog voltage on the I/O pin however.  To make the demo more interesting, it
                         //is suggested that an external adjustable analog voltage should be applied to this pin.
 
+                        /*
                         pot = ADC_Read10bit(ADC_CHANNEL_POTENTIOMETER);
 
                         ToSendDataBuffer[0] = 0x37;  	//Echo back to the host the command we are fulfilling in the first uint8_t.  In this case, the Read POT (analog voltage) command.
                         ToSendDataBuffer[1] = (uint8_t)pot; //LSB
                         ToSendDataBuffer[2] = pot >> 8;     //MSB
-
+                         */
 
                         //Prepare the USB module to send the data packet to the host
                         USBInHandle = HIDTxPacket(CUSTOM_DEVICE_HID_EP, (uint8_t*)&ToSendDataBuffer[0],64);

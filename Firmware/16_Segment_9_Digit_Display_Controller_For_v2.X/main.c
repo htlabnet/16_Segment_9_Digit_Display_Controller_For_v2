@@ -169,8 +169,6 @@ void main(void) {
     
     while (1){
         
-        SYSTEM_Tasks();
-        
         if (PIR1bits.RCIF) {
             PIR1bits.RCIF = 0;           //フラグを下げる
             RxData = RCREG;              // 受信データを取り込む

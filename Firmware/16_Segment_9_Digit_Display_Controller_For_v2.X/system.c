@@ -20,9 +20,6 @@ please contact mla_licensing@microchip.com
 #include <xc.h>
 #include "system.h"
 #include "usb.h"
-#include "leds.h"
-#include "buttons.h"
-#include "adc.h"
 
 /** CONFIGURATION Bits **********************************************/
 #pragma config PLLDIV   = 5         // (20 MHz crystal on PICDEM FS USB board)

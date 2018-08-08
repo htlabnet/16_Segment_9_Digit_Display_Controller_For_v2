@@ -23,11 +23,7 @@ please contact mla_licensing@microchip.com
 #include <xc.h>
 #include <stdbool.h>
 #include <stdint.h>
-#include "buttons.h"
-#include "leds.h"
-#include "adc.h"
 
-#include "io_mapping.h"
 #include "fixed_address_memory.h"
 
 #define MAIN_RETURN void
@@ -68,6 +64,6 @@ typedef enum
 *
 ********************************************************************/
 //void SYSTEM_Tasks(void);
-#define SYSTEM_Tasks()
+//#define SYSTEM_Tasks()
 
 #endif //SYSTEM_H
