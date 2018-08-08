@@ -130,6 +130,7 @@ void APP_DeviceCustomHIDTasks()
         {
             case COMMAND_TOGGLE_LED:  //Toggle LEDs command
                 //LED_Toggle(LED_USB_DEVICE_HID_CUSTOM);
+                showDemoMessage = !showDemoMessage;
                 break;
             case COMMAND_GET_BUTTON_STATUS:  //Get push button state
                 //Check to make sure the endpoint/buffer is free before we modify the contents
