@@ -13,24 +13,17 @@
 
 
 #include <xc.h>
-
-#include "segFonts.h"
 #include <stdint.h>
 #include <string.h>
 #include <stdbool.h>
 
+#include "segFonts.h"
 #include "system.h"
 
 #include "usb.h"
 #include "usb_device_hid.h"
-
 #include "app_device_custom_hid.h"
 #include "app_led_usb_status.h"
-
-#pragma config FOSC  = HS       // 20MHz Xtal(分周なし)
-#pragma config MCLRE = ON       // リセットピンを利用する
-#pragma config LVP   = OFF      // 低電圧プログラミング機能使用しない(OFF)
-#pragma config WDT   = OFF      // ウォッチドッグタイマーを利用しない
 
 #define _XTAL_FREQ 20000000
 
@@ -39,22 +32,8 @@ const uint8_t  DEMO_MESSAGE[] =  "MAKER FAIRE TOKYO 2018 HTLABNET BOOTH! THIS IS
 const uint8_t  DEMO_DOTFLAG[] =  "                           .                                                     ";
 const uint16_t MESSAGE_LENGTH = (int)(sizeof(DEMO_MESSAGE)/sizeof(char));
 
-uint8_t led_stat;     // コントローラについてる4つのbarLEDの点灯状態
 uint8_t digitPtr = 0; // 現在表示している桁数
 bool    showDemoMessage = false;
-
-//初期値"*********"
-uint32_t segMap[9] = {
-    0b110000000011111111,
-    0b110000000011111111,
-    0b110000000011111111,
-    0b110000000011111111,
-    0b110000000011111111,
-    0b110000000011111111,
-    0b110000000011111111,
-    0b110000000011111111,
-    0b110000000011111111
-};
 
 
 // (デバッグ用関数)
@@ -191,7 +170,6 @@ void main(void) {
     }
 }
 
-
 uint16_t divisor = 0;
 uint8_t display[9];
 uint8_t disdot[9];
@@ -223,13 +201,4 @@ void interrupt isr(void) {
     #if defined(USB_INTERRUPT)
         USBDeviceTasks();
     #endif
-    
-    /*
-    if (PIR1bits.TMR2IF) {
-        PIR1bits.TMR2IF = 0;    // フラグを下げる
-        if (showDemoMessage) handleMessage();
-        refreshShiftRegister(digitPtr);
-        digitPtr = (digitPtr+1)%9;      // digitPtrを次の値にセット
-    }
-    */
 }
