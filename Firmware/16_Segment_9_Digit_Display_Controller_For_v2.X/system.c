@@ -17,9 +17,7 @@ To request to license the code under the MLA license (www.microchip.com/mla_lice
 please contact mla_licensing@microchip.com
 *******************************************************************************/
 
-#include <xc.h>
 #include "system.h"
-#include "usb.h"
 
 /** CONFIGURATION Bits **********************************************/
 #pragma config PLLDIV   = 5         // (20 MHz crystal on PICDEM FS USB board)
@@ -66,6 +64,9 @@ please contact mla_licensing@microchip.com
 #pragma config LVP   = OFF      // 低電圧プログラミング機能使用しない(OFF)
 #pragma config WDT   = OFF      // ウォッチドッグタイマーを利用しない
 
+uint8_t digitPtr = 0; // 現在表示している桁数
+bool    showDemoMessage = false;
+
 uint8_t led_stat;     // コントローラについてる4つのbarLEDの点灯状態
 
 //初期値"*********"
@@ -80,3 +81,60 @@ uint32_t segMap[9] = {
     0b110000000011111111,
     0b110000000011111111
 };
+
+void refreshShiftRegister(int ptr) {
+    uint16_t ledSelector = 0b1 << ptr;
+
+    uint32_t map =    ((segMap[ptr] & 0b11111111) << 24)
+                    | ((segMap[ptr] & 0b1111111100000000) << 8)
+                    | ((ledSelector & 0b0000000011) << 14)
+                    | ((led_stat    & 0b00001111) << 10)
+                    | ((segMap[ptr] & 0b110000000000000000) >> 8)
+                    | ((ledSelector & 0b1111111100) >> 2);
+
+    for (int i = 0; i < 32; i++) {
+        LATBbits.LATB2 = (map >> i) & 1;
+        LATBbits.LATB3 = 1;
+        __delay_us(1);
+        LATBbits.LATB3 = 0;
+        __delay_us(1);
+    }
+
+    LATBbits.LATB4 = 1;
+    __delay_us(1);
+    LATBbits.LATB4 = 0;
+    __delay_us(1);
+}
+
+uint16_t divisor = 0;
+uint8_t display[9];
+uint8_t disdot[9];
+uint16_t writeItr = 0;
+
+void handleMessage() {
+    if (divisor++ == 500) {
+        divisor = 0;
+        
+        if (writeItr++ == MESSAGE_LENGTH-9) writeItr = 0;
+        strncpy(display, DEMO_MESSAGE + writeItr, 9);
+        strncpy(disdot,  DEMO_DOTFLAG + writeItr, 9);
+        
+        setMsgWithDot(display, disdot);
+        
+    }
+}
+
+//次の桁を表示する
+void interrupt isr(void) {
+    if (INTCONbits.TMR0IF) {
+        INTCONbits.TMR0IF = 0;    // フラグを下げる
+        TMR0 = 0xFF - 125+1;
+        if (showDemoMessage) handleMessage();
+        refreshShiftRegister(digitPtr);
+        digitPtr = (digitPtr+1)%9;      // digitPtrを次の値にセット
+    }
+    
+    #if defined(USB_INTERRUPT)
+        USBDeviceTasks();
+    #endif
+}
