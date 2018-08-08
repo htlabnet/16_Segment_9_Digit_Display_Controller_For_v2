@@ -11,23 +11,23 @@
 
 // (デバッグ用関数)
 // 引数の数字を二進数でディスプレイに表示する
-void showBinary(int input){
+void showBinary(uint8_t input){
     for(int i = 0; i < 8; i++){
         if((input & (1 << i)) == 0){
-            segMap[i] = ~fontList[0x30];
+            segMap[8-i] = ~fontList[0x30];
         }else{
-            segMap[i] = ~fontList[0x31];
+            segMap[8-i] = ~fontList[0x31];
         }
     }
 }
 
-void setMsg(char input[]) {
+void setMsg(uint8_t input[]) {
     for (int i = 0; i < 9; i++) {
         segMap[i] = ~fontList[input[i]];
     }
 }
 
-void setMsgWithDot(char message[], char dotFlag[]) {
+void setMsgWithDot(uint8_t message[], uint8_t dotFlag[]) {
     for (int i = 0; i < 9; i++) {
         segMap[i] = ~(fontList[message[i]] | ((uint32_t)(dotFlag[i] == '.') << 16));
     }

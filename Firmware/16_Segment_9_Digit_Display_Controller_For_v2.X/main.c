@@ -21,6 +21,7 @@
 #include "system.h"
 #include "utilities.h"
 
+#include "i2c.h"
 #include "usb.h"
 #include "usb_device_hid.h"
 #include "app_device_custom_hid.h"
@@ -84,10 +85,38 @@ void main(void) {
     uint8_t digitSelector;    // 書き換え桁数
     uint32_t dotflag;  // ドットをつけるかどうか
     
-    showDemoMessage = LATDbits.LATD0;
+    //showDemoMessage = LATDbits.LATD0;
     
     USBDeviceInit();
     USBDeviceAttach();
+    
+    showBinary(10);
+    
+    i2c_enable_master(99);
+    i2c_start();
+    i2c_send_byte(0x68); // Address
+    i2c_send_byte(0x00);
+    i2c_send_byte(0x45); // Seconds
+    i2c_send_byte(0x59); // Minutes
+    i2c_send_byte(0x23); // Hours
+    i2c_send_byte(0x01); // Day
+    i2c_send_byte(0x31); // Date
+    i2c_send_byte(0x12); // Month
+    i2c_send_byte(0x17); // Year
+    i2c_stop();
+    
+    i2c_start();
+    i2c_send_byte(0x68); // Address
+    i2c_send_byte(0x00);
+    
+    uint8_t rtcdata[8];
+    for (int i = 0; i < 8; i++) {
+        rtcdata[i] = i2c_read_byte(true);
+    }
+    
+    i2c_stop();
+    
+    //showBinary(rtcdata[0]);
     
     while (1){
         
