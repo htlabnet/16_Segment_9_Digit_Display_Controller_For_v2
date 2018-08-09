@@ -78,8 +78,6 @@ void main(void) {
     BRGH = 0;
     SPBRG   = 129;
 
-    led_stat = 0b11110011;
-
     uint8_t RxData;            // 受信データ用バッファ
     uint8_t digitSelector;    // 書き換え桁数
     uint32_t dotflag;  // ドットをつけるかどうか
