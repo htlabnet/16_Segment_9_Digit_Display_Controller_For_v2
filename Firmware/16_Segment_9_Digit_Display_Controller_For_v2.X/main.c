@@ -27,6 +27,9 @@
 #include "app_led_usb_status.h"
 
 
+uint16_t led_target_voltage = 8000;     //mV
+uint16_t led_voltage_threshold = 1000;  //mV
+
 void pwmInit() {
     T2CON = 0;
     T2CONbits.T2CKPS = 0b01;    // Prescaler is 4
