@@ -246,7 +246,7 @@ void interrupt isr(void) {
         return;
     }
         
-    if (PORTDbits.RD6 && counter++ == 100) {
+    if (PORTDbits.RD6 && ++counter == 99) {
         counter = 0;
         I2C_Start(0xD0);
         I2C_Write(0x00);
