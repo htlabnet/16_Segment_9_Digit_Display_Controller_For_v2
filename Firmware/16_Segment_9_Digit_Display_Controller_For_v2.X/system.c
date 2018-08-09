@@ -144,24 +144,23 @@ void writeRTC() {
     
     setMsg("WRITING  ");
     
-    i2c_enable_master(99);
-    i2c_start();
-    i2c_send_byte(0xD0); // Address
-    i2c_send_byte(0x00);
+    I2C_Init();
+    I2C_Start(0xD0);
+    I2C_Write(0x00);
 
-    i2c_send_byte((sec/10)      << 4 | sec%10); // Seconds
-    i2c_send_byte((min/10)      << 4 | min%10); // Minutes
-    i2c_send_byte((hour/10)     << 4 | hour%10); // Hours
-    i2c_send_byte(((day+1)/10)  << 4 | (day+1)%10); // Day
-    i2c_send_byte(((date+1)/10) << 4 | (date+1)%10); // Date
-    i2c_send_byte(((mon+1)/10)  << 4 | (mon+1)%10); // Month
-    i2c_send_byte((year/10)     << 4 | year%10); // Year
-    i2c_stop();
+    I2C_Write(dec2bcd(sec)); // Seconds
+    I2C_Write(dec2bcd(min)); // Minutes
+    I2C_Write(dec2bcd(hour)); // Hours
+    I2C_Write(dec2bcd(day+1)); // Day
+    I2C_Write(dec2bcd(date+1)); // Date
+    I2C_Write(dec2bcd(mon+1)); // Month
+    I2C_Write(dec2bcd(year)); // Year
+    I2C_Stop();
 
     setMsg("DONE     ");
 }
 
-
+    int counter = 0;
 //次の桁を表示する
 void interrupt isr(void) {
     if (INTCONbits.TMR0IF) {
@@ -244,6 +243,32 @@ void interrupt isr(void) {
         up_before = BUTTON_UP;
         down_before = BUTTON_DOWN;
         sel_before = BUTTON_SEL;
+        return;
+    }
+        
+    if (PORTDbits.RD6 && counter++ == 100) {
+        counter = 0;
+        I2C_Start(0xD0);
+        I2C_Write(0x00);
+        I2C_Stop();
+
+        I2C_Start(0xD1);
+
+        uint8_t rtcdata[7];
+        for (int i = 0; i < 7; i++) {
+            rtcdata[i] = I2C_Read(i == 6);
+        }
+
+        I2C_Stop();
+
+
+        uint8_t buffer[10];
+        sprintf(buffer, "%02d%1d%02d%02d%02d", bcd2dec(rtcdata[4]), bcd2dec(rtcdata[3]), bcd2dec(rtcdata[2] & 0x3F), bcd2dec(rtcdata[1]), bcd2dec(rtcdata[0] & 0x7F));
+        setMsg(buffer);
+
+        //uint8_t buffer[10];
+        //sprintf(buffer, "%09d", counter++);
+        //setMsg(buffer);
 
     }
         

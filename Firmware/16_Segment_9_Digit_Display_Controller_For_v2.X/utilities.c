@@ -32,3 +32,11 @@ void setMsgWithDot(uint8_t message[], uint8_t dotFlag[]) {
         segMap[i] = ~(fontList[message[i]] | ((uint32_t)(dotFlag[i] == '.') << 16));
     }
 }
+
+uint8_t bcd2dec(uint8_t input) {
+    return (input >> 4)*10 + (input & 0X0F);
+}
+
+uint8_t dec2bcd(uint8_t input) {
+    return ((input/10)<<4) | (input%10);
+}

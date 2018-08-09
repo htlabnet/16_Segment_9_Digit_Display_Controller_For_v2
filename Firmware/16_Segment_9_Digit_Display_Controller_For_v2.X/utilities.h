@@ -16,6 +16,8 @@
 void showBinary(uint8_t input);
 void setMsg(uint8_t input[]);
 void setMsgWithDot(uint8_t message[], uint8_t dotFlag[]);
+uint8_t bcd2dec(uint8_t input);
+uint8_t dec2bcd(uint8_t input);
 
 #endif	/* UTILITIES_H */
 

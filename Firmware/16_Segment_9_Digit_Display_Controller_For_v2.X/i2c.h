@@ -11,15 +11,20 @@
 #include <stdint.h>
 #include <xc.h>
 
-void    i2c_wait(void);
-void    i2c_enable_master(int baud_divisor);
-void    i2c_disable_master(void);
-void    i2c_enable_slave(uint8_t address);
-void    i2c_enable_isr(void);
-void    i2c_start(void);
-void    i2c_repeat_start(void);
-void    i2c_stop(void);
-void    i2c_send_byte(unsigned char data);
-uint8_t i2c_read_byte(unsigned int ack);
+void I2C_Init();
+
+char I2C_Start(char slave_write_address);
+
+void I2C_Ready();
+
+char I2C_Write(unsigned char data);
+
+char I2C_Stop();
+
+char I2C_Read(char flag);
+
+void I2C_Ack();
+
+void I2C_Nack();
 
 #endif	/* I2C_H */

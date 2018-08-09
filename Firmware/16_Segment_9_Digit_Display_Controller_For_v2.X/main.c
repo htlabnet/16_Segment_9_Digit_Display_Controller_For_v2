@@ -91,38 +91,9 @@ void main(void) {
     USBDeviceInit();
     USBDeviceAttach();
     
-    /*
-    i2c_enable_master(99);
-    i2c_start();
-    i2c_send_byte(0xD0); // Address
-    i2c_send_byte(0x00);
-    i2c_send_byte(0x45); // Seconds
-    i2c_send_byte(0x59); // Minutes
-    i2c_send_byte(0x23); // Hours
-    i2c_send_byte(0x01); // Day
-    i2c_send_byte(0x31); // Date
-    i2c_send_byte(0x12); // Month
-    i2c_send_byte(0x17); // Year
-    i2c_stop();
-    
-    
-    i2c_start();
-    i2c_send_byte(0xD0); // Address
-    i2c_send_byte(0x00);
-    i2c_stop();
-    
-    i2c_start();
-    i2c_send_byte(0xD1); // Address
-    
-    uint8_t rtcdata[7];
-    for (int i = 0; i < 7; i++) {
-        rtcdata[i] = i2c_read_byte(true);
-    }
-    
-    i2c_stop();
-    */
-    
+    I2C_Init();
     while (1){
+        
         
         if (PIR1bits.RCIF) {
             PIR1bits.RCIF = 0;           //フラグを下げる
