@@ -22,6 +22,7 @@ please contact mla_licensing@microchip.com
 #include "usb_device_hid.h"
 
 #include <string.h>
+#include <stdint.h>
 
 #include "system.h"
 
@@ -53,11 +54,12 @@ volatile USB_HANDLE USBOutHandle;
 volatile USB_HANDLE USBInHandle;
 
 /** DEFINITIONS ****************************************************/
-typedef enum
-{
-    COMMAND_TOGGLE_LED = 0x80,
-    COMMAND_GET_BUTTON_STATUS = 0x81,
-    COMMAND_READ_POTENTIOMETER = 0x37
+typedef enum {
+    COMMAND_WRITE_SEGMENT = 0x10,
+    COMMAND_WRITE_SEGMENT_ALL = 0x1F,
+    COMMAND_WRITE_CUSTOM = 0x20,
+    COMMAND_WRITE_CUSTOM_ALL = 0x2F,
+    COMMAND_READ_VERSION = 0xFF         
 } CUSTOM_HID_DEMO_COMMANDS;
 
 /** FUNCTIONS ******************************************************/
@@ -101,13 +103,11 @@ void APP_DeviceCustomHIDInitialize()
 * Output: None
 *
 ********************************************************************/
-void APP_DeviceCustomHIDTasks()
-{   
+void APP_DeviceCustomHIDTasks() {
     /* If the USB device isn't configured yet, we can't really do anything
      * else since we don't have a host to talk to.  So jump back to the
      * top of the while loop. */
-    if( USBGetDeviceState() < CONFIGURED_STATE )
-    {
+    if( USBGetDeviceState() < CONFIGURED_STATE ) {
         return;
     }
 
@@ -115,68 +115,57 @@ void APP_DeviceCustomHIDTasks()
      * issue a remote wakeup.  In either case, we shouldn't process any
      * keyboard commands since we aren't currently communicating to the host
      * thus just continue back to the start of the while loop. */
-    if( USBIsDeviceSuspended()== true )
-    {
+    if( USBIsDeviceSuspended()== true ) {
         return;
     }
     
     //Check if we have received an OUT data packet from the host
-    if(HIDRxHandleBusy(USBOutHandle) == false)
-    {   
+    if(HIDRxHandleBusy(USBOutHandle) == false) {   
         //We just received a packet of data from the USB host.
         //Check the first uint8_t of the packet to see what command the host
         //application software wants us to fulfill.
-        switch(ReceivedDataBuffer[0])				//Look at the data the host sent, to see what kind of application specific command it sent.
-        {
-            case COMMAND_TOGGLE_LED:  //Toggle LEDs command
-                //LED_Toggle(LED_USB_DEVICE_HID_CUSTOM);
-                showDemoMessage = !showDemoMessage;
+        switch(ReceivedDataBuffer[0]) { //Look at the data the host sent, to see what kind of application specific command it sent.
+            
+            case COMMAND_WRITE_SEGMENT: {   // [ COMMAND | DIGIT | FontID | DOT(.......0) ]
+                uint8_t DIGIT  = ReceivedDataBuffer[1];
+                uint8_t FontID = ReceivedDataBuffer[2];
+                uint8_t DOT    = ReceivedDataBuffer[3];
+                segMap[DIGIT] = ~(fontList[FontID] | ((uint32_t)DOT << 16));
                 break;
-            case COMMAND_GET_BUTTON_STATUS:  //Get push button state
-                //Check to make sure the endpoint/buffer is free before we modify the contents
-                if(!HIDTxHandleBusy(USBInHandle))
-                {
-                    ToSendDataBuffer[0] = 0x81;				//Echo back to the host PC the command we are fulfilling in the first uint8_t.  In this case, the Get Pushbutton State command.
-                    /*
-                    if(BUTTON_IsPressed(BUTTON_USB_DEVICE_HID_CUSTOM) == false)	//pushbutton not pressed, pull up resistor on circuit board is pulling the PORT pin high
-                    {
-                            ToSendDataBuffer[1] = 0x01;
-                    }
-                    else									//sw3 must be == 0, pushbutton is pressed and overpowering the pull up resistor
-                    {
-                            ToSendDataBuffer[1] = 0x00;
-                    }
-                    */
-                    //Prepare the USB module to send the data packet to the host
-                    USBInHandle = HIDTxPacket(CUSTOM_DEVICE_HID_EP, (uint8_t*)&ToSendDataBuffer[0],64);
+            }
+            case COMMAND_WRITE_SEGMENT_ALL: {// [ COMMAND | FontID(0) | FontID(1) | FontID(2) | FontID(3) | FontID(4) | FontID(5) | FontID(6) | FontID(7) | FontID(8) | DOT(7-0) | DOT(.......8)
+                uint8_t Dot7_0 = ReceivedDataBuffer[10];
+                uint8_t Dot_8  = ReceivedDataBuffer[11];
+                for (int i = 0; i < 8; i++) {
+                    segMap[i] = ~(fontList[ReceivedDataBuffer[i+1]] | (((uint32_t)Dot7_0&(0b1<<i)) << 16-i));
                 }
+                segMap[8] = ~(fontList[ReceivedDataBuffer[9]] | (((uint32_t)Dot_8&0b00000001) << 16));
                 break;
-
-            case COMMAND_READ_POTENTIOMETER:	//Read POT command.  Uses ADC to measure an analog voltage on one of the ANxx I/O pins, and returns the result to the host
-                {
-                    uint16_t pot;
-
-                    //Check to make sure the endpoint/buffer is free before we modify the contents
-                    if(!HIDTxHandleBusy(USBInHandle))
-                    {
-                        //Use ADC to read the I/O pin voltage.  See the relevant HardwareProfile - xxxxx.h file for the I/O pin that it will measure.
-                        //Some demo boards, like the PIC18F87J50 FS USB Plug-In Module board, do not have a potentiometer (when used stand alone).
-                        //This function call will still measure the analog voltage on the I/O pin however.  To make the demo more interesting, it
-                        //is suggested that an external adjustable analog voltage should be applied to this pin.
-
-                        /*
-                        pot = ADC_Read10bit(ADC_CHANNEL_POTENTIOMETER);
-
-                        ToSendDataBuffer[0] = 0x37;  	//Echo back to the host the command we are fulfilling in the first uint8_t.  In this case, the Read POT (analog voltage) command.
-                        ToSendDataBuffer[1] = (uint8_t)pot; //LSB
-                        ToSendDataBuffer[2] = pot >> 8;     //MSB
-                         */
-
-                        //Prepare the USB module to send the data packet to the host
-                        USBInHandle = HIDTxPacket(CUSTOM_DEVICE_HID_EP, (uint8_t*)&ToSendDataBuffer[0],64);
-                    }
+            }
+            case COMMAND_WRITE_CUSTOM: {    // [ COMMAND | DIGIT | CUSTOM(MSB) | CUSTOM(LSB) | DOT(.......0)]
+                uint8_t DIGIT   = ReceivedDataBuffer[1];
+                uint8_t CustomH = ReceivedDataBuffer[2];
+                uint8_t CustomL = ReceivedDataBuffer[3];
+                uint8_t DOT     = ReceivedDataBuffer[4];
+                segMap[DIGIT] = ~((CustomH << 8) | CustomL | ((uint32_t)DOT << 16));
+                break;
+            }
+            case COMMAND_WRITE_CUSTOM_ALL: {// [ COMMAND | CUSTOM(0)H,L | CUSTOM(1)H,L | CUSTOM(2)H,L | CUSTOM(3)H,L | CUSTOM(4)H,L | CUSTOM(5)H,L | CUSTOM(6)H,L | CUSTOM(7)H,L | CUSTOM(8)H,L | Dot(7-0) | DOT(.......8)]
+                uint8_t Dot7_0 = ReceivedDataBuffer[19];
+                uint8_t Dot_8  = ReceivedDataBuffer[20];
+                for (int i = 0; i < 8; i++) {
+                    segMap[i] = ~((ReceivedDataBuffer[((i+1)*2)-1] << 8) | ReceivedDataBuffer[(i+1)*2] | ((uint32_t)ReceivedDataBuffer[19] << 16-i));
                 }
+                segMap[8] = ~((ReceivedDataBuffer[17] << 8) | ReceivedDataBuffer[18] | ((uint32_t)ReceivedDataBuffer[20] << 16));
                 break;
+            }
+            case COMMAND_READ_VERSION: {
+                ToSendDataBuffer[0] = 0xFF;
+                ToSendDataBuffer[1] = 0x02;
+                //Prepare the USB module to send the data packet to the host
+                USBInHandle = HIDTxPacket(CUSTOM_DEVICE_HID_EP, (uint8_t*)&ToSendDataBuffer[0],64);
+                break;
+            }
         }
         //Re-arm the OUT endpoint, so we can receive the next OUT data packet 
         //that the host may try to send us.
