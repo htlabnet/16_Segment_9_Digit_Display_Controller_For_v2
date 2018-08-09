@@ -21,6 +21,7 @@
 #include "system.h"
 #include "utilities.h"
 
+#include "i2c.h"
 #include "usb.h"
 #include "usb_device_hid.h"
 #include "app_device_custom_hid.h"
@@ -32,10 +33,10 @@ void main(void) {
     ADCON1 = 0b00001111; //All Digital
     CMCON  = 0b00000111; //No Comparator
     TRISA  = 0b00001111;
-    TRISB  = 0b00000000;
+    TRISB  = 0b00000011;
     TRISC  = 0b10000000; //Rxのみ入力
     TRISD  = 0b11111111;
-    TRISE  = 0b00000000;
+    TRISE  = 0b00000111;
     
     PORTEbits.RDPU = 1;
 
@@ -82,12 +83,15 @@ void main(void) {
     uint8_t digitSelector;    // 書き換え桁数
     uint32_t dotflag;  // ドットをつけるかどうか
     
-    showDemoMessage = LATDbits.LATD0;
+    while (PORTDbits.RD7);
+    showDemoMessage = PORTDbits.RD0;
     
     USBDeviceInit();
     USBDeviceAttach();
     
+    I2C_Init();
     while (1){
+        
         
         if (PIR1bits.RCIF) {
             PIR1bits.RCIF = 0;           //フラグを下げる

@@ -124,12 +124,51 @@ void handleMessage() {
     }
 }
 
+uint8_t sel_before;
+uint8_t up_before;
+uint8_t down_before;
+
+uint8_t year = 00;
+uint8_t mon  = 00;
+uint8_t date = 00;
+uint8_t day  = 00;
+uint8_t hour = 00;
+uint8_t min  = 00;
+uint8_t sec  = 00;
+
+uint8_t rtcSetState = 0;
+
+uint8_t buffer[10];
+
+void writeRTC() {
+    
+    setMsg("WRITING  ");
+    
+    I2C_Init();
+    I2C_Start(0xD0);
+    I2C_Write(0x00);
+
+    I2C_Write(dec2bcd(sec)); // Seconds
+    I2C_Write(dec2bcd(min)); // Minutes
+    I2C_Write(dec2bcd(hour)); // Hours
+    I2C_Write(dec2bcd(day+1)); // Day
+    I2C_Write(dec2bcd(date+1)); // Date
+    I2C_Write(dec2bcd(mon+1)); // Month
+    I2C_Write(dec2bcd(year)); // Year
+    I2C_Stop();
+
+    setMsg("DONE     ");
+}
+
+    int counter = 0;
 //次の桁を表示する
 void interrupt isr(void) {
     if (INTCONbits.TMR0IF) {
         INTCONbits.TMR0IF = 0;    // フラグを下げる
         TMR0 = 0xFF - 125+1;
+        
         if (showDemoMessage) handleMessage();
+        
         refreshShiftRegister(digitPtr);
         digitPtr = (digitPtr+1)%9;      // digitPtrを次の値にセット
     }
@@ -137,4 +176,101 @@ void interrupt isr(void) {
     #if defined(USB_INTERRUPT)
         USBDeviceTasks();
     #endif
+
+    if (PORTDbits.RD7) { // 時刻合わせMODE
+
+        switch (rtcSetState) {
+            case 0: // year
+                if ((BUTTON_UP != up_before) && !BUTTON_UP) year = (++year)%100;
+                if ((BUTTON_DOWN != down_before) && !BUTTON_DOWN) year = (--year)%100; 
+                if ((BUTTON_SEL != sel_before) && !BUTTON_SEL) rtcSetState++;
+                sprintf(buffer, "YEAR-20%02d", year);
+                setMsg(buffer);
+                break;
+            case 1: // mon
+                if ((BUTTON_UP != up_before) && !BUTTON_UP) mon = (++mon)%12;
+                if ((BUTTON_DOWN != down_before) && !BUTTON_DOWN) mon = (--mon)%12; 
+                if ((BUTTON_SEL != sel_before) && !BUTTON_SEL) rtcSetState++;
+                sprintf(buffer, "MON -  %2d", mon+1);
+                setMsg(buffer);
+                break;
+            case 2: // date
+                if ((BUTTON_UP != up_before) && !BUTTON_UP) date = (++date)%31;
+                if ((BUTTON_DOWN != down_before) && !BUTTON_DOWN) date = (--date)%31; 
+                if ((BUTTON_SEL != sel_before) && !BUTTON_SEL) rtcSetState++;
+                sprintf(buffer, "DATE-  %2d", date+1);
+                setMsg(buffer);
+                break;
+            case 3: // day
+                if ((BUTTON_UP != up_before) && !BUTTON_UP) day = (++day)%7;
+                if ((BUTTON_DOWN != down_before) && !BUTTON_DOWN) day = (--day)%7; 
+                if ((BUTTON_SEL != sel_before) && !BUTTON_SEL) rtcSetState++;
+                sprintf(buffer, "DAY -  %2d", day+1);
+                setMsg(buffer);
+                break;
+            case 4: // hour
+                if ((BUTTON_UP != up_before) && !BUTTON_UP) hour = (++hour)%24;
+                if ((BUTTON_DOWN != down_before) && !BUTTON_DOWN) hour = (--hour)%24; 
+                if ((BUTTON_SEL != sel_before) && !BUTTON_SEL) rtcSetState++;
+                sprintf(buffer, "HOUR-  %2d", hour);
+                setMsg(buffer);
+                break;
+            case 5: // min
+                if ((BUTTON_UP != up_before) && !BUTTON_UP) min = (++min)%60;
+                if ((BUTTON_DOWN != down_before) && !BUTTON_DOWN) min = (--min)%60; 
+                if ((BUTTON_SEL != sel_before) && !BUTTON_SEL) rtcSetState++;
+                sprintf(buffer, "MIN -  %2d", min);
+                setMsg(buffer);
+                break;
+            case 6: // sec
+                if ((BUTTON_UP != up_before) && !BUTTON_UP) sec = (++sec)%60;
+                if ((BUTTON_DOWN != down_before) && !BUTTON_DOWN) sec = (--sec)%60; 
+                if ((BUTTON_SEL != sel_before) && !BUTTON_SEL) {
+                    rtcSetState++;
+                    writeRTC();
+                    break;
+                }
+                sprintf(buffer, "SEC -  %2d", sec);
+                setMsg(buffer);
+                break;
+            case 7: // done
+                break;
+            default:
+                setMsg("ERROR!!!!");
+                break;
+        }
+
+        up_before = BUTTON_UP;
+        down_before = BUTTON_DOWN;
+        sel_before = BUTTON_SEL;
+        return;
+    }
+        
+    if (PORTDbits.RD6 && ++counter == 99) {
+        counter = 0;
+        I2C_Start(0xD0);
+        I2C_Write(0x00);
+        I2C_Stop();
+
+        I2C_Start(0xD1);
+
+        uint8_t rtcdata[7];
+        for (int i = 0; i < 7; i++) {
+            rtcdata[i] = I2C_Read(i == 6);
+        }
+
+        I2C_Stop();
+
+
+        uint8_t buffer[10];
+        sprintf(buffer, "%02d%1d%02d%02d%02d", bcd2dec(rtcdata[4]), bcd2dec(rtcdata[3]), bcd2dec(rtcdata[2] & 0x3F), bcd2dec(rtcdata[1]), bcd2dec(rtcdata[0] & 0x7F));
+        setMsg(buffer);
+
+        //uint8_t buffer[10];
+        //sprintf(buffer, "%09d", counter++);
+        //setMsg(buffer);
+
+    }
+        
+        
 }

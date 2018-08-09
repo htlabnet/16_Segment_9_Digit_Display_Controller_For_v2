@@ -21,6 +21,7 @@
       <itemPath>fixed_address_memory.h</itemPath>
       <itemPath>segFonts.h</itemPath>
       <itemPath>utilities.h</itemPath>
+      <itemPath>i2c.h</itemPath>
     </logicalFolder>
     <logicalFolder name="LinkerScript"
                    displayName="Linker Files"
@@ -40,6 +41,7 @@
       <itemPath>app_led_usb_status.c</itemPath>
       <itemPath>system.c</itemPath>
       <itemPath>utilities.c</itemPath>
+      <itemPath>i2c.c</itemPath>
     </logicalFolder>
     <logicalFolder name="ExternalFiles"
                    displayName="Important Files"

@@ -21,9 +21,11 @@ please contact mla_licensing@microchip.com
 #define SYSTEM_H
 
 #include <xc.h>
+#include <stdio.h>
 #include <stdbool.h>
 #include <stdint.h>
 
+#include "i2c.h"
 #include "usb.h"
 #include "fixed_address_memory.h"
 #include "utilities.h"
@@ -42,6 +44,10 @@ typedef enum {
 const uint8_t  DEMO_MESSAGE[] =  "MAKER FAIRE TOKYO 2018 HTLABNET BOOTH! THIS IS 16 SEGMENT 9 DIGIT DISPLAY        ";
 const uint8_t  DEMO_DOTFLAG[] =  "                           .                                                     ";
 const uint16_t MESSAGE_LENGTH = (int)(sizeof(DEMO_MESSAGE)/sizeof(char));
+
+#define BUTTON_UP   PORTEbits.RE0
+#define BUTTON_DOWN PORTEbits.RE1
+#define BUTTON_SEL  PORTEbits.RE2
 
 extern uint8_t digitPtr; // 現在表示している桁数
 extern bool    showDemoMessage;
