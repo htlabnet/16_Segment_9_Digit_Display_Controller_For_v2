@@ -13,92 +13,22 @@
 
 
 #include <xc.h>
-
-#include "segFonts.h"
 #include <stdint.h>
 #include <string.h>
 #include <stdbool.h>
 
-#pragma config FOSC  = HS       // 20MHz Xtal(分周なし)
-#pragma config MCLRE = ON       // リセットピンを利用する
-#pragma config LVP   = OFF      // 低電圧プログラミング機能使用しない(OFF)
-#pragma config WDT   = OFF      // ウォッチドッグタイマーを利用しない
+#include "segFonts.h"
+#include "system.h"
+#include "utilities.h"
+#include "i2c.h"
+#include "usb.h"
+#include "usb_device_hid.h"
+#include "app_device_custom_hid.h"
+#include "app_led_usb_status.h"
 
-#define _XTAL_FREQ 20000000
-
-
-const uint8_t  DEMO_MESSAGE[] =  "MAKER FAIRE TOKYO 2018 HTLABNET BOOTH! THIS IS 16 SEGMENT 9 DIGIT DISPLAY        ";
-const uint8_t  DEMO_DOTFLAG[] =  "                           .                                                     ";
-const uint16_t MESSAGE_LENGTH = (int)(sizeof(DEMO_MESSAGE)/sizeof(char));
-
-uint8_t led_stat;     // コントローラについてる4つのbarLEDの点灯状態
-uint8_t digitPtr = 0; // 現在表示している桁数
-bool    showDemoMessage = false;
 
 uint16_t led_target_voltage = 8000;     //mV
 uint16_t led_voltage_threshold = 1000;  //mV
-
-//初期値"*********"
-uint32_t segMap[9] = {
-    0b110000000011111111,
-    0b110000000011111111,
-    0b110000000011111111,
-    0b110000000011111111,
-    0b110000000011111111,
-    0b110000000011111111,
-    0b110000000011111111,
-    0b110000000011111111,
-    0b110000000011111111
-};
-
-
-// (デバッグ用関数)
-// 引数の数字を二進数でディスプレイに表示する
-void showBinary(int input){
-    for(int i = 0; i < 8; i++){
-        if((input & (1 << i)) == 0){
-            segMap[i] = ~fontList[0x30];
-        }else{
-            segMap[i] = ~fontList[0x31];
-        }
-    }
-}
-
-void setMsg(char input[]) {
-    for (int i = 0; i < 9; i++) {
-        segMap[i] = ~fontList[input[i]];
-    }
-}
-
-void setMsgWithDot(char message[], char dotFlag[]) {
-    for (int i = 0; i < 9; i++) {
-        segMap[i] = ~(fontList[message[i]] | ((uint32_t)(dotFlag[i] == '.') << 16));
-    }
-}
-
-void refreshShiftRegister(int ptr) {
-    uint16_t ledSelector = 0b1 << ptr;
-
-    uint32_t map =    ((segMap[ptr] & 0b11111111) << 24)
-                    | ((segMap[ptr] & 0b1111111100000000) << 8)
-                    | ((ledSelector & 0b0000000011) << 14)
-                    | ((led_stat    & 0b00001111) << 10)
-                    | ((segMap[ptr] & 0b110000000000000000) >> 8)
-                    | ((ledSelector & 0b1111111100) >> 2);
-
-    for (int i = 0; i < 32; i++) {
-        LATBbits.LATB2 = (map >> i) & 1;
-        LATBbits.LATB3 = 1;
-        __delay_us(1);
-        LATBbits.LATB3 = 0;
-        __delay_us(1);
-    }
-
-    LATBbits.LATB4 = 1;
-    __delay_us(1);
-    LATBbits.LATB4 = 0;
-    __delay_us(1);
-}
 
 void pwmInit() {
     T2CON = 0;
@@ -170,10 +100,10 @@ void main(void) {
     ADCON1 = 0b00001111; //All Digital
     CMCON  = 0b00000111; //No Comparator
     TRISA  = 0b00001111;
-    TRISB  = 0b00000000;
+    TRISB  = 0b00000011;
     TRISC  = 0b10000000; //Rxのみ入力
     TRISD  = 0b11111111;
-    TRISE  = 0b00000000;
+    TRISE  = 0b00000111;
     
     PORTEbits.RDPU = 1;
 
@@ -216,14 +146,12 @@ void main(void) {
     BRGH = 0;
     SPBRG   = 129;
 
-    led_stat = 0b11110011;
-
     uint8_t RxData;            // 受信データ用バッファ
     uint8_t digitSelector;    // 書き換え桁数
     uint32_t dotflag;  // ドットをつけるかどうか
     
-    // TODO: dipスイッチの状態をここに入力する
-    //showDemoMessage = LATDbits.LATD0;
+    while (PORTDbits.RD7);
+    showDemoMessage = PORTDbits.RD0;
     
     // Enable ADC
     adcInit();
@@ -233,6 +161,10 @@ void main(void) {
     
     // if (adcRead(0) > 700) {pwmDisable} //12V DC入力時に900程度？
     
+    USBDeviceInit();
+    USBDeviceAttach();
+    
+    I2C_Init();
     while (1){
         
         // DC-DC Converter
@@ -259,43 +191,7 @@ void main(void) {
             }
         }
         
-    }
-}
-
-
-uint16_t divisor = 0;
-uint8_t display[9];
-uint8_t disdot[9];
-uint16_t writeItr = 0;
-
-void handleMessage() {
-    if (divisor++ == 500) {
-        divisor = 0;
-        
-        if (writeItr++ == MESSAGE_LENGTH-9) writeItr = 0;
-        strncpy(display, DEMO_MESSAGE + writeItr, 9);
-        strncpy(disdot,  DEMO_DOTFLAG + writeItr, 9);
-        
-        setMsgWithDot(display, disdot);
+        APP_DeviceCustomHIDTasks();
         
     }
-}
-
-//次の桁を表示する
-void __interrupt() isr(void) {
-    if (INTCONbits.TMR0IF) {
-        INTCONbits.TMR0IF = 0;    // フラグを下げる
-        TMR0 = 0xFF - 125+1;
-        if (showDemoMessage) handleMessage();
-        refreshShiftRegister(digitPtr);
-        digitPtr = (digitPtr+1)%9;      // digitPtrを次の値にセット
-    }
-    /*
-    if (PIR1bits.TMR2IF) {
-        PIR1bits.TMR2IF = 0;    // フラグを下げる
-        if (showDemoMessage) handleMessage();
-        refreshShiftRegister(digitPtr);
-        digitPtr = (digitPtr+1)%9;      // digitPtrを次の値にセット
-    }
-    */
 }
