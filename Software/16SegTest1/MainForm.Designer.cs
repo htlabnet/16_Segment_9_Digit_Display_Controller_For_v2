@@ -43,11 +43,11 @@
             this.grpBoxController = new System.Windows.Forms.GroupBox();
             this.tbText = new System.Windows.Forms.TextBox();
             this.grpBoxControl = new System.Windows.Forms.GroupBox();
+            this.lblScroolSpeed = new System.Windows.Forms.Label();
+            this.tbarScrollSpeed = new System.Windows.Forms.TrackBar();
             this.cbDotOverride = new System.Windows.Forms.CheckBox();
             this.cbStrReplace = new System.Windows.Forms.CheckBox();
             this.lblText = new System.Windows.Forms.Label();
-            this.tbarScrollSpeed = new System.Windows.Forms.TrackBar();
-            this.lblScroolSpeed = new System.Windows.Forms.Label();
             this.grpBoxDots.SuspendLayout();
             this.grpBoxController.SuspendLayout();
             this.grpBoxControl.SuspendLayout();
@@ -215,6 +215,25 @@
             this.grpBoxControl.TabStop = false;
             this.grpBoxControl.Text = "制御";
             // 
+            // lblScroolSpeed
+            // 
+            this.lblScroolSpeed.AutoSize = true;
+            this.lblScroolSpeed.Location = new System.Drawing.Point(6, 18);
+            this.lblScroolSpeed.Name = "lblScroolSpeed";
+            this.lblScroolSpeed.Size = new System.Drawing.Size(96, 15);
+            this.lblScroolSpeed.TabIndex = 7;
+            this.lblScroolSpeed.Text = "スクロール速度:";
+            // 
+            // tbarScrollSpeed
+            // 
+            this.tbarScrollSpeed.Location = new System.Drawing.Point(9, 36);
+            this.tbarScrollSpeed.Maximum = 3000;
+            this.tbarScrollSpeed.Name = "tbarScrollSpeed";
+            this.tbarScrollSpeed.Size = new System.Drawing.Size(179, 56);
+            this.tbarScrollSpeed.TabIndex = 8;
+            this.tbarScrollSpeed.TickFrequency = 100;
+            this.tbarScrollSpeed.Scroll += new System.EventHandler(this.tbarScrollSpeed_Scroll);
+            // 
             // cbDotOverride
             // 
             this.cbDotOverride.AutoSize = true;
@@ -245,25 +264,6 @@
             this.lblText.TabIndex = 6;
             this.lblText.Text = "テキスト:";
             // 
-            // tbarScrollSpeed
-            // 
-            this.tbarScrollSpeed.Location = new System.Drawing.Point(9, 36);
-            this.tbarScrollSpeed.Maximum = 3000;
-            this.tbarScrollSpeed.Name = "tbarScrollSpeed";
-            this.tbarScrollSpeed.Size = new System.Drawing.Size(179, 56);
-            this.tbarScrollSpeed.TabIndex = 8;
-            this.tbarScrollSpeed.TickFrequency = 100;
-            this.tbarScrollSpeed.Scroll += new System.EventHandler(this.tbarScrollSpeed_Scroll);
-            // 
-            // lblScroolSpeed
-            // 
-            this.lblScroolSpeed.AutoSize = true;
-            this.lblScroolSpeed.Location = new System.Drawing.Point(6, 18);
-            this.lblScroolSpeed.Name = "lblScroolSpeed";
-            this.lblScroolSpeed.Size = new System.Drawing.Size(96, 15);
-            this.lblScroolSpeed.TabIndex = 7;
-            this.lblScroolSpeed.Text = "スクロール速度:";
-            // 
             // MainForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 15F);
@@ -275,7 +275,7 @@
             this.Controls.Add(this.grpBoxController);
             this.Controls.Add(this.grpBoxDots);
             this.Name = "MainForm";
-            this.Text = "16 Segment LED Control Software 20180812.2210";
+            this.Text = "16 Segment LED Control Software";
             this.grpBoxDots.ResumeLayout(false);
             this.grpBoxDots.PerformLayout();
             this.grpBoxController.ResumeLayout(false);
