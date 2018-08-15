@@ -130,16 +130,16 @@ void APP_DeviceCustomHIDTasks() {
                 uint8_t DIGIT  = ReceivedDataBuffer[1];
                 uint8_t FontID = ReceivedDataBuffer[2];
                 uint8_t DOT    = ReceivedDataBuffer[3];
-                segMap[DIGIT] = ~(fontList[FontID] | ((uint32_t)DOT << 16));
+                segMap[DIGIT] = ~((uint32_t)fontList[FontID] | ((uint32_t)DOT << 16));
                 break;
             }
             case COMMAND_WRITE_SEGMENT_ALL: {// [ COMMAND | FontID(0) | FontID(1) | FontID(2) | FontID(3) | FontID(4) | FontID(5) | FontID(6) | FontID(7) | FontID(8) | DOT(7-0) | DOT(.......8)
                 uint8_t Dot7_0 = ReceivedDataBuffer[10];
                 uint8_t Dot_8  = ReceivedDataBuffer[11];
                 for (int i = 0; i < 8; i++) {
-                    segMap[i] = ~(fontList[ReceivedDataBuffer[i+1]] | (((uint32_t)Dot7_0&(0b1<<i)) << 16-i));
+                    segMap[i] = ~((uint32_t)fontList[ReceivedDataBuffer[i+1]] | (((uint32_t)Dot7_0&(0b1<<i)) << 16-i));
                 }
-                segMap[8] = ~(fontList[ReceivedDataBuffer[9]] | (((uint32_t)Dot_8&0b00000001) << 16));
+                segMap[8] = ~((uint32_t)fontList[ReceivedDataBuffer[9]] | (((uint32_t)Dot_8&0b00000001) << 16));
                 break;
             }
             case COMMAND_WRITE_CUSTOM: {    // [ COMMAND | DIGIT | CUSTOM(MSB) | CUSTOM(LSB) | DOT(.......0)]
@@ -147,16 +147,16 @@ void APP_DeviceCustomHIDTasks() {
                 uint8_t CustomH = ReceivedDataBuffer[2];
                 uint8_t CustomL = ReceivedDataBuffer[3];
                 uint8_t DOT     = ReceivedDataBuffer[4];
-                segMap[DIGIT] = ~((CustomH << 8) | CustomL | ((uint32_t)DOT << 16));
+                segMap[DIGIT] = ~(((uint32_t)CustomH << 8) | (uint32_t)CustomL | ((uint32_t)DOT << 16));
                 break;
             }
             case COMMAND_WRITE_CUSTOM_ALL: {// [ COMMAND | CUSTOM(0)H,L | CUSTOM(1)H,L | CUSTOM(2)H,L | CUSTOM(3)H,L | CUSTOM(4)H,L | CUSTOM(5)H,L | CUSTOM(6)H,L | CUSTOM(7)H,L | CUSTOM(8)H,L | Dot(7-0) | DOT(.......8)]
                 uint8_t Dot7_0 = ReceivedDataBuffer[19];
                 uint8_t Dot_8  = ReceivedDataBuffer[20];
                 for (int i = 0; i < 8; i++) {
-                    segMap[i] = ~((ReceivedDataBuffer[((i+1)*2)-1] << 8) | ReceivedDataBuffer[(i+1)*2] | ((uint32_t)ReceivedDataBuffer[19] << 16-i));
+                    segMap[i] = ~(((uint32_t)ReceivedDataBuffer[((i+1)*2)-1] << 8) | (uint32_t)ReceivedDataBuffer[(i+1)*2] | (((uint32_t)Dot7_0&(0b1<<i)) << 16-i));
                 }
-                segMap[8] = ~((ReceivedDataBuffer[17] << 8) | ReceivedDataBuffer[18] | ((uint32_t)ReceivedDataBuffer[20] << 16));
+                segMap[8] = ~(((uint32_t)ReceivedDataBuffer[17] << 8) | (uint32_t)ReceivedDataBuffer[18] | ((uint32_t)Dot_8 << 16));
                 break;
             }
             case COMMAND_READ_VERSION: {
