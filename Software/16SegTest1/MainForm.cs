@@ -19,7 +19,7 @@ namespace _16SegControl
         private HidDevice _segDev = null;
         private CancellationTokenSource _tokenSource= new CancellationTokenSource();
         private Task _task;
-        private int _scroolSpeed = 500;
+        private int _scroolSpeed = 500; // ms
 
         public MainForm()
         {
@@ -195,29 +195,6 @@ namespace _16SegControl
             return state;
         }
 
-        private byte[] CreateDisplayCommandBuffer(List<SegChar> segList)
-        {
-            var buffer = new List<byte>();
-            var dots = new List<int>();
-            // 9桁同時送信のコマンド
-            buffer.Add(0x1F);
-            // 1文字ごとにバッファに入れていく
-            foreach (var seg in segList)
-            {
-                buffer.Add((byte) seg.Char);
-                dots.Add(seg.IsDot ? 1 : 0);
-            }
-
-            // 9桁に満たない場合、dotsとbufferにパディングをする
-            dots.AddRange(Enumerable.Repeat(0, DisplayDigits - segList.Count));
-            buffer.AddRange(Enumerable.Repeat((byte) 0x00, (DisplayDigits + 1) - buffer.Count));
-            // dotsデータからファームに送るバイト列を作る
-            // 上書きがチェックされていたらUIのチェックボックスを優先する
-            buffer.AddRange(cbDotOverride.Checked ? LedDotToBytes() : LedDotToBytes(dots.ToArray()));
-
-            return buffer.ToArray();
-        }
-
         /// <summary>
         /// 入力された文字をSegCharに変換する。
         /// 入力文字が"A."だった場合、Aの桁にdotを付けることになるので、
@@ -345,7 +322,7 @@ namespace _16SegControl
 
                         if (typeof(T) == typeof(SegChar))
                         {
-                            buffer.AddRange(CreateDisplayCommandBuffer((List<SegChar>)(object)segList));
+                            buffer.AddRange(CreateDisplayBytesFromSegChar((List<SegChar>)(object)segList));
                             hidStream.Write(buffer.ToArray());
                         }
                     }
@@ -377,7 +354,7 @@ namespace _16SegControl
                         {
                             var mapList = (List<SegChar>) (object) segList.Skip(i).Take(DisplayDigits).ToList();
                             mapList.AddRange(Enumerable.Repeat(new SegChar(), DisplayDigits - mapList.Count));
-                            buffer.AddRange(CreateDisplayCommandBuffer((List<SegChar>)(object)mapList));
+                            buffer.AddRange(CreateDisplayBytesFromSegChar((List<SegChar>)(object)mapList));
                         }
                         i++;
 
@@ -423,6 +400,75 @@ namespace _16SegControl
             buffer.AddRange(Enumerable.Repeat((byte) 0x00, (DisplayDigits * 2 + 1) - buffer.Count));
             buffer.AddRange(LedDotToBytes(dots.ToArray()));
             return buffer.ToArray();
+        }
+
+        private byte[] CreateDisplayBytesFromSegChar(List<SegChar> segList)
+        {
+            var buffer = new List<byte>();
+            var dots = new List<int>();
+            // 9桁同時送信のコマンド
+            buffer.Add(0x1F);
+            // 1文字ごとにバッファに入れていく
+            foreach (var seg in segList)
+            {
+                buffer.Add((byte) seg.Char);
+                dots.Add(seg.IsDot ? 1 : 0);
+            }
+
+            // 9桁に満たない場合、dotsとbufferにパディングをする
+            dots.AddRange(Enumerable.Repeat(0, DisplayDigits - segList.Count));
+            buffer.AddRange(Enumerable.Repeat((byte) 0x00, (DisplayDigits + 1) - buffer.Count));
+            // dotsデータからファームに送るバイト列を作る
+            // 上書きがチェックされていたらUIのチェックボックスを優先する
+            buffer.AddRange(cbDotOverride.Checked ? LedDotToBytes() : LedDotToBytes(dots.ToArray()));
+
+            return buffer.ToArray();
+        }
+
+        private void btnSendFromJson_Click(object sender, EventArgs e)
+        {
+            if (openFileDialog.ShowDialog() == DialogResult.OK)
+            {
+                using (var fs = openFileDialog.OpenFile())
+                {
+                    using (var sr = new StreamReader(fs))
+                    {
+                        // セグメント定義JSONファイルをロード/シリアライズ
+                        var segmentJson = sr.ReadToEnd();
+                        CustomSegments segs = JsonConvert.DeserializeObject<CustomSegments>(segmentJson);
+                        // BaseDirが定義されていないか、フォルダがそもそもない場合、プログラムの作業ディレクトリをベースにする
+                        if ((segs.BaseDir == null) || (Directory.Exists(segs.BaseDir) == false))
+                        {
+                            segs.BaseDir = Environment.CurrentDirectory;
+                        }
+
+                        var fonts = new List<CustomFont>();
+                        foreach (var font in segs.Fonts)
+                        {
+                            var fontJsonPath = Path.Combine(segs.BaseDir, font);
+                            // ベースディレクトリにJSONファイルがなかったら処理を終了する
+                            if (!File.Exists(fontJsonPath))
+                            {
+                                MessageBox.Show("JSONファイルが見つかりません。\n(" + fontJsonPath + ")", "パースエラー",
+                                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+                                return;
+                            }
+
+                            using (var ffs = new FileStream(fontJsonPath, FileMode.Open))
+                            {
+                                using (var fsr = new StreamReader(ffs))
+                                {
+                                    // フォント定義JSONファイルをロード/シリアライズ/リストに追加
+                                    string fontJson = fsr.ReadToEnd();
+                                    fonts.Add(JsonConvert.DeserializeObject<CustomFont>(fontJson));
+                                }
+                            }
+                        }
+                        // ロードしたフォントを表示する
+                        DisplayData(fonts);
+                    }
+                }
+            }
         }
     }
 }

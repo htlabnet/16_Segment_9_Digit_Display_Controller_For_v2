@@ -41,6 +41,7 @@
             this.cbDot5 = new System.Windows.Forms.CheckBox();
             this.btnSend = new System.Windows.Forms.Button();
             this.grpBoxController = new System.Windows.Forms.GroupBox();
+            this.btnSendFromJson = new System.Windows.Forms.Button();
             this.tbText = new System.Windows.Forms.TextBox();
             this.grpBoxControl = new System.Windows.Forms.GroupBox();
             this.lblScroolSpeed = new System.Windows.Forms.Label();
@@ -48,6 +49,7 @@
             this.cbDotOverride = new System.Windows.Forms.CheckBox();
             this.cbStrReplace = new System.Windows.Forms.CheckBox();
             this.lblText = new System.Windows.Forms.Label();
+            this.openFileDialog = new System.Windows.Forms.OpenFileDialog();
             this.grpBoxDots.SuspendLayout();
             this.grpBoxController.SuspendLayout();
             this.grpBoxControl.SuspendLayout();
@@ -176,9 +178,9 @@
             // btnSend
             // 
             this.btnSend.Enabled = false;
-            this.btnSend.Location = new System.Drawing.Point(39, 18);
+            this.btnSend.Location = new System.Drawing.Point(8, 18);
             this.btnSend.Name = "btnSend";
-            this.btnSend.Size = new System.Drawing.Size(75, 23);
+            this.btnSend.Size = new System.Drawing.Size(144, 23);
             this.btnSend.TabIndex = 2;
             this.btnSend.Text = "送信";
             this.btnSend.UseVisualStyleBackColor = true;
@@ -186,6 +188,7 @@
             // 
             // grpBoxController
             // 
+            this.grpBoxController.Controls.Add(this.btnSendFromJson);
             this.grpBoxController.Controls.Add(this.btnHIDDevConnect);
             this.grpBoxController.Controls.Add(this.btnSend);
             this.grpBoxController.Location = new System.Drawing.Point(12, 103);
@@ -194,6 +197,16 @@
             this.grpBoxController.TabIndex = 3;
             this.grpBoxController.TabStop = false;
             this.grpBoxController.Text = "コントローラ";
+            // 
+            // btnSendFromJson
+            // 
+            this.btnSendFromJson.Location = new System.Drawing.Point(8, 47);
+            this.btnSendFromJson.Name = "btnSendFromJson";
+            this.btnSendFromJson.Size = new System.Drawing.Size(144, 23);
+            this.btnSendFromJson.TabIndex = 7;
+            this.btnSendFromJson.Text = "JSONから送信";
+            this.btnSendFromJson.UseVisualStyleBackColor = true;
+            this.btnSendFromJson.Click += new System.EventHandler(this.btnSendFromJson_Click);
             // 
             // tbText
             // 
@@ -264,6 +277,10 @@
             this.lblText.TabIndex = 6;
             this.lblText.Text = "テキスト:";
             // 
+            // openFileDialog
+            // 
+            this.openFileDialog.Filter = "JSON|*.json";
+            // 
             // MainForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 15F);
@@ -309,6 +326,8 @@
         private System.Windows.Forms.CheckBox cbDotOverride;
         private System.Windows.Forms.TrackBar tbarScrollSpeed;
         private System.Windows.Forms.Label lblScroolSpeed;
+        private System.Windows.Forms.Button btnSendFromJson;
+        private System.Windows.Forms.OpenFileDialog openFileDialog;
     }
 }
 
