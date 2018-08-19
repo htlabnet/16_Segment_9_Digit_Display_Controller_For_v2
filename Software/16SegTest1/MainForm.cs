@@ -119,7 +119,7 @@ namespace _16SegControl
                 if (GetLedDotFromCheckbox(i)) dot1 = (byte) ((1 << i - 1) | dot1);
                 if (i > 8 && GetLedDotFromCheckbox(i)) dot2 = (byte) ((1 << i - 9) | dot2);
             }
-            return new byte[] { dot1, dot2 };
+            return new[] { dot1, dot2 };
         }
 
         /// <summary>
@@ -367,6 +367,7 @@ namespace _16SegControl
                         var waitTask = Task.Run(async delegate { await Task.Delay(_scroolSpeed); });
                         waitTask.Wait();
                     }
+                    // ReSharper disable once FunctionNeverReturns
                 }, _tokenSource.Token);
             }
         }
