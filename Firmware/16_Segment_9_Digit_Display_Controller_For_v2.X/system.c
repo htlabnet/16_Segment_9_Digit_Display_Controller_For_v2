@@ -160,9 +160,36 @@ void writeRTC() {
     setMsg("DONE     ");
 }
 
-    int counter = 0;
+int counter = 0;
+bool UART_ReadingNextValue = false;
+uint8_t digitSelector;    // 書き換え桁数
+uint32_t dotflag;  // ドットをつけるかどうか
+
 //次の桁を表示する
 void interrupt isr(void) {
+    
+    
+    if (PIR1bits.RCIF) {
+        PIR1bits.RCIF = 0;           //フラグを下げる
+        
+        uint8_t RxData = RCREG;            // 受信データ用バッファ
+        
+        if (UART_ReadingNextValue == false) {
+            if ((RxData & 0b11100000) == 0b11100000) {
+                digitSelector = (RxData & 0b00001111);
+                dotflag = (RxData & 0b00010000) >> 4;
+                UART_ReadingNextValue = true;
+            }
+        } else {
+            UART_ReadingNextValue = false;
+            if (digitSelector > 8) return;  // 無効な入力の処理
+            if (RxData > 0b01111111) RxData = ~RxData;
+            segMap[digitSelector] = ~(fontList[RxData] | (dotflag << 16)); // 値を実際にセット
+        }
+    }
+    
+    
+    
     if (INTCONbits.TMR0IF) {
         INTCONbits.TMR0IF = 0;    // フラグを下げる
         TMR0 = 0xFF - 125+1;
@@ -261,14 +288,9 @@ void interrupt isr(void) {
 
         I2C_Stop();
 
-
         uint8_t buffer[10];
         sprintf(buffer, "%02d%1d%02d%02d%02d", bcd2dec(rtcdata[4]), bcd2dec(rtcdata[3]), bcd2dec(rtcdata[2] & 0x3F), bcd2dec(rtcdata[1]), bcd2dec(rtcdata[0] & 0x7F));
         setMsg(buffer);
-
-        //uint8_t buffer[10];
-        //sprintf(buffer, "%09d", counter++);
-        //setMsg(buffer);
 
     }
         
