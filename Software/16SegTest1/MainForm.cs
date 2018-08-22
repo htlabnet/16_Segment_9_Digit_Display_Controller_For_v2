@@ -314,8 +314,6 @@ namespace _16SegControl
                 {
                     using (hidStream)
                     {
-                        //  List<T>で渡された型ごとに処理をする
-                        // TODO: CreateDisplayBytesをList<T>対応にする
                         buffer.AddRange(CreateDisplayBytes(segList));
                         hidStream.Write(buffer.ToArray());
                     }
@@ -350,7 +348,6 @@ namespace _16SegControl
                         i++;
 
                         // HIDに書き込む
-                        // TODO: 書き込み自体は関数を分離させた方が良いかも知れない
                         if (_segDev.TryOpen(out var hidStream))
                         {
                             using (hidStream)
@@ -378,10 +375,12 @@ namespace _16SegControl
             var dots = new List<int>();
             if (typeof(T) == typeof(CustomFont))
             {
+                // CustomFontを9桁同時送信するコマンド
                 buffer.Add(0x2F);
             }
             if (typeof(T) == typeof(SegChar))
             {
+                // charを9桁同時送信するコマンド
                 buffer.Add(0x1F);
             }
 
@@ -405,16 +404,14 @@ namespace _16SegControl
 
             // 9桁に満たない場合、dotsとbufferにパディングをする
             dots.AddRange(Enumerable.Repeat(0, DisplayDigits - segList.Count));
+            var paddingMultiply = 1;
+            if (typeof(T) == typeof(CustomFont))
+            {
+                // CustomFontの場合、1文字につき2byte使うので補正
+                paddingMultiply = 2;
+            }
 
-                if (typeof(T) == typeof(CustomFont))
-                {
-                    buffer.AddRange(Enumerable.Repeat((byte) 0x00, ((DisplayDigits * 2) + 1) - buffer.Count));
-                }
-
-                if (typeof(T) == typeof(SegChar))
-                {
-                    buffer.AddRange(Enumerable.Repeat((byte) 0x00, (DisplayDigits + 1) - buffer.Count));
-                }
+            buffer.AddRange(Enumerable.Repeat((byte) 0x00, ((DisplayDigits * paddingMultiply) + 1) - buffer.Count));
 
             // dotsデータからファームに送るバイト列を作る
             // 上書きがチェックされていたらUIのチェックボックスを優先する
