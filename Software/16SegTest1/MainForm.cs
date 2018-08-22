@@ -1,11 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using HidSharp;
+using Newtonsoft.Json;
 
 namespace _16SegControl
 {
@@ -14,13 +17,14 @@ namespace _16SegControl
         // ユニットの表示桁数
         private const int DisplayDigits = 9;
         private HidDevice _segDev = null;
-        private CancellationTokenSource _tokenSource= new CancellationTokenSource();
+        private CancellationTokenSource _tokenSource;
         private Task _task;
-        private int _scroolSpeed = 500;
+        private int _scroolSpeed = 500; // ms
 
         public MainForm()
         {
             InitializeComponent();
+            _tokenSource= new CancellationTokenSource();
             tbarScrollSpeed.Value = _scroolSpeed;
         }
 
@@ -56,7 +60,7 @@ namespace _16SegControl
         /// </summary>
         /// <param name="digits">ドットを表示するか確認する桁数</param>
         /// <returns></returns>
-        private bool GetLedDot(int digits)
+        private bool GetLedDotFromCheckbox(int digits)
         {
             bool dot = false;
             switch (digits)
@@ -92,20 +96,30 @@ namespace _16SegControl
             return dot;
         }
 
+        private void CancelAndWaitTask()
+        {
+            //タスクを止める
+            if (_tokenSource != null)
+            {
+                _tokenSource.Cancel(true);
+                _task?.Wait();
+            }
+        }
+        
         /// <summary>
         /// CheckBoxのステータスからFirmwareに送信するデータを作成する
         /// </summary>
         /// <returns>ファームウエアで使用するDOTSバイト列</returns>
-        private byte[] LedDotToBytes()
+        private byte[] LedDotToBytesFromCheckBox()
         {
             byte dot1 = 0x00;
             byte dot2 = 0x00;
             for (var i = 1; i <= 9; i++)
             {
-                if (GetLedDot(i)) dot1 = (byte) ((1 << i - 1) | dot1);
-                if (i > 8 && GetLedDot(i)) dot2 = (byte) ((1 << i - 9) | dot2);
+                if (GetLedDotFromCheckbox(i)) dot1 = (byte) ((1 << i - 1) | dot1);
+                if (i > 8 && GetLedDotFromCheckbox(i)) dot2 = (byte) ((1 << i - 9) | dot2);
             }
-            return new byte[] { dot1, dot2 };
+            return new[] { dot1, dot2 };
         }
 
         /// <summary>
@@ -120,7 +134,7 @@ namespace _16SegControl
             for (var i = 0; i < 9; i++)
             {
                 if (flags[i] == 1) dot1 = (byte) ((1 << i) | dot1);
-                if (i > 8 && (flags[i] == 1)) dot2 = (byte) ((1 << i - 8) | dot2);
+                if (i >= 8 && (flags[i] == 1)) dot2 = (byte) ((1 << i - 8) | dot2);
             }
             return new[] { dot1, dot2 };
         }
@@ -144,62 +158,12 @@ namespace _16SegControl
             // 入力されたTextを解析してSegChar形式に変換する
             // SegCharにすることで文字とドットの関係性が作れる
             var t = text.ToCharArray();
-            var segList = PackInputText(t);
+            var segList = PackInputTextToSegChar(t);
 
-            // DISPLAY_DIGITS 文字以下はそのまま出していく
-            if (DisplayDigits >= segList.Count)
-            {
-                // HIDに書き込む
-                CheckSegDevAlive();
-                if (_segDev.TryOpen(out var hidStream))
-                {
-                    using (hidStream)
-                    {
-                        hidStream.Write(CreateDisplayCommandBuffer(segList));
-                    }
-                }
-            }
-            else
-            {
-                int i = 0;
-                _task = Task.Factory.StartNew(() =>
-                {
-                    while (true)
-                    {
-                        // 先頭に戻る
-                        if (i > segList.Count) i = 0;
-                        // 前回から一文字ずらして取得する。Takeでは要素が足りない場合その要素は取得されない特性がある
-                        // ex. 10文字あって先頭が8文字目のとき、9文字取得しようとすると2文字しか出てこない(Count = 2)ことになる
-                        // このため、以降のパディング処理が楽になる
-                        var disp = segList.Skip(i++).Take(DisplayDigits).ToList();
-
-                        if (disp.Count <= DisplayDigits)
-                            // " "でパディング
-                            disp.AddRange(Enumerable.Repeat(new SegChar(' '), DisplayDigits - disp.Count));
-
-                        // HIDに書き込む
-                        // TODO: 書き込み自体は関数を分離させた方が良いかも知れない
-                        if (_segDev.TryOpen(out var hidStream))
-                        {
-                            using (hidStream)
-                            {
-                                hidStream.Write(CreateDisplayCommandBuffer(disp));
-                            }
-                        }
-                        else
-                        {
-                            // デバイス死んでたらトークンをキャンセルしてwhileループを殺す
-                            if (CheckSegDevAlive()) _tokenSource.Cancel(true);
-                        }
-
-                        var waitTask = Task.Run(async delegate { await Task.Delay(_scroolSpeed); });
-                        waitTask.Wait();
-                    }
-                }, _tokenSource.Token);
-            }
+            DisplayData(segList);
         }
 
-        private bool CheckSegDevAlive()
+        private bool CheckControllerDeviceAlive()
         {
             var state = true;
             if (_segDev == null)
@@ -232,31 +196,6 @@ namespace _16SegControl
             return state;
         }
 
-        private byte[] CreateDisplayCommandBuffer(List<SegChar> segList)
-        {
-            var buffer = new List<byte>();
-            var dots = new List<int>();
-            // HIDのDescription ID
-            buffer.Add(0x0);
-            // 9桁同時送信のコマンド
-            buffer.Add(0x1F);
-            // 1文字ごとにバッファに入れていく
-            foreach (var seg in segList)
-            {
-                buffer.Add((byte) seg.Char);
-                dots.Add(seg.IsDot ? 1 : 0);
-            }
-
-            // 9桁に満たない場合、dotsとbufferにパディングをする
-            dots.AddRange(Enumerable.Repeat(0, DisplayDigits - segList.Count));
-            buffer.AddRange(Enumerable.Repeat((byte) 0x00, (DisplayDigits + 2) - buffer.Count));
-            // dotsデータからファームに送るバイト列を作る
-            // 上書きがチェックされていたらUIのチェックボックスを優先する
-            buffer.AddRange(cbDotOverride.Checked ? LedDotToBytes() : LedDotToBytes(dots.ToArray()));
-
-            return buffer.ToArray();
-        }
-
         /// <summary>
         /// 入力された文字をSegCharに変換する。
         /// 入力文字が"A."だった場合、Aの桁にdotを付けることになるので、
@@ -264,7 +203,7 @@ namespace _16SegControl
         /// </summary>
         /// <param name="t">解析を行うchar配列</param>
         /// <returns></returns>
-        public static List<SegChar> PackInputText(char[] t)
+        public static List<SegChar> PackInputTextToSegChar(char[] t)
         {
             List<SegChar> segList = new List<SegChar>();
             bool last = false;
@@ -339,6 +278,192 @@ namespace _16SegControl
         private void tbarScrollSpeed_Scroll(object sender, EventArgs e)
         {
             _scroolSpeed = tbarScrollSpeed.Value;
+        }
+
+        private FontByte CreateFontDataToBytes(CustomFont font)
+        {
+            var lsb = (byte) (font.A1 ? 1 : 0);
+            lsb = (byte) (font.A2 ? ((1 << 1) | lsb) : lsb);
+            lsb = (byte) (font.B ? ((1 << 2) | lsb) : lsb);
+            lsb = (byte) (font.C ? ((1 << 3) | lsb) : lsb);
+            lsb = (byte) (font.D1 ? ((1 << 4) | lsb) : lsb);
+            lsb = (byte) (font.D2 ? ((1 << 5) | lsb) : lsb);
+            lsb = (byte) (font.E ? ((1 << 6) | lsb) : lsb);
+            lsb = (byte) (font.F ? ((1 << 7) | lsb) : lsb);
+
+            var msb = (byte) (font.G1 ? 1 : 0);
+            msb = (byte) (font.G2 ? ((1 << 1) | msb) : msb);
+            msb = (byte) (font.H ? ((1 << 2) | msb) : msb);
+            msb = (byte) (font.I ? ((1 << 3) | msb) : msb);
+            msb = (byte) (font.J ? ((1 << 4) | msb) : msb);
+            msb = (byte) (font.K ? ((1 << 5) | msb) : msb);
+            msb = (byte) (font.L ? ((1 << 6) | msb) : msb);
+            msb = (byte) (font.M ? ((1 << 7) | msb) : msb);
+            return new FontByte(msb, lsb, font.DP);
+        }
+
+        private void DisplayData<T>(List<T> segList)
+        {
+            var buffer = new List<byte> {0}; // HID Description ID = 0
+            // DISPLAY_DIGITS 文字以下はそのまま出していく
+            if (DisplayDigits >= segList.Count)
+            {
+                // HIDに書き込む
+                CheckControllerDeviceAlive();
+                if (_segDev.TryOpen(out var hidStream))
+                {
+                    using (hidStream)
+                    {
+                        buffer.AddRange(CreateDisplayBytes(segList));
+                        hidStream.Write(buffer.ToArray());
+                    }
+                }
+            }
+            else
+            {
+                CancelAndWaitTask();
+                _task = Task.Factory.StartNew(() =>
+                {
+                    int i = 0;
+                    while (true)
+                    {
+                        // 先頭に戻る
+                        if (i > segList.Count) i = 0;
+                        // 型ごとにわける
+                        if (typeof(T) == typeof(CustomFont))
+                        {
+                            // TIPS: 前回から一文字ずらして取得する。Takeでは要素が足りない場合その要素は取得されない特性がある
+                            // ex. 10文字あって先頭が8文字目のとき、9文字取得しようとすると2文字しか出てこない(Count = 2)ことになる
+                            // このため、以降のパディング処理が楽になる
+                            var mapList = (List<CustomFont>) (object) segList.Skip(i).Take(DisplayDigits).ToList();
+                            mapList.AddRange(Enumerable.Repeat(new CustomFont(), DisplayDigits - mapList.Count));
+                            buffer.AddRange(CreateDisplayBytes(mapList));
+                        }
+                        if (typeof(T) == typeof(SegChar))
+                        {
+                            var mapList = (List<SegChar>) (object) segList.Skip(i).Take(DisplayDigits).ToList();
+                            mapList.AddRange(Enumerable.Repeat(new SegChar(), DisplayDigits - mapList.Count));
+                            buffer.AddRange(CreateDisplayBytes(mapList));
+                        }
+                        i++;
+
+                        // HIDに書き込む
+                        if (_segDev.TryOpen(out var hidStream))
+                        {
+                            using (hidStream)
+                            {
+                                hidStream.Write(buffer.ToArray());
+                            }
+                        }
+                        else
+                        {
+                            // デバイス死んでたらトークンをキャンセルしてwhileループを殺す
+                            if (CheckControllerDeviceAlive()) _tokenSource.Cancel(true);
+                        }
+
+                        var waitTask = Task.Run(async delegate { await Task.Delay(_scroolSpeed); });
+                        waitTask.Wait();
+                    }
+                    // ReSharper disable once FunctionNeverReturns
+                }, _tokenSource.Token);
+            }
+        }
+
+        private byte[] CreateDisplayBytes<T>(List<T> segList)
+        {
+            var buffer = new List<byte>();
+            var dots = new List<int>();
+            if (typeof(T) == typeof(CustomFont))
+            {
+                // CustomFontを9桁同時送信するコマンド
+                buffer.Add(0x2F);
+            }
+            if (typeof(T) == typeof(SegChar))
+            {
+                // charを9桁同時送信するコマンド
+                buffer.Add(0x1F);
+            }
+
+            foreach (var seg in segList)
+            {
+                if (typeof(T) == typeof(CustomFont))
+                {
+                    var f = CreateFontDataToBytes((CustomFont) (object) seg);
+                    buffer.Add(f.Msb);
+                    buffer.Add(f.Lsb);
+                    dots.Add(f.Dot ? 1 : 0);
+                }
+
+                if (typeof(T) == typeof(SegChar))
+                {
+                    var f = ((SegChar) (object) seg);
+                    buffer.Add((byte) f.Char);
+                    dots.Add(f.IsDot ? 1 : 0);
+                }
+            }
+
+            // 9桁に満たない場合、dotsとbufferにパディングをする
+            dots.AddRange(Enumerable.Repeat(0, DisplayDigits - segList.Count));
+            var paddingMultiply = 1;
+            if (typeof(T) == typeof(CustomFont))
+            {
+                // CustomFontの場合、1文字につき2byte使うので補正
+                paddingMultiply = 2;
+            }
+
+            buffer.AddRange(Enumerable.Repeat((byte) 0x00, ((DisplayDigits * paddingMultiply) + 1) - buffer.Count));
+
+            // dotsデータからファームに送るバイト列を作る
+            // 上書きがチェックされていたらUIのチェックボックスを優先する
+            buffer.AddRange(cbDotOverride.Checked ? LedDotToBytesFromCheckBox() : LedDotToBytes(dots.ToArray()));
+
+            return buffer.ToArray();
+        }
+
+        private void btnSendFromJson_Click(object sender, EventArgs e)
+        {
+            if (openFileDialog.ShowDialog() == DialogResult.OK)
+            {
+                using (var fs = openFileDialog.OpenFile())
+                {
+                    using (var sr = new StreamReader(fs))
+                    {
+                        // セグメント定義JSONファイルをロード/シリアライズ
+                        var segmentJson = sr.ReadToEnd();
+                        CustomSegments segs = JsonConvert.DeserializeObject<CustomSegments>(segmentJson);
+                        // BaseDirが定義されていないか、フォルダがそもそもない場合、プログラムの作業ディレクトリをベースにする
+                        if ((segs.BaseDir == null) || (Directory.Exists(segs.BaseDir) == false))
+                        {
+                            segs.BaseDir = Environment.CurrentDirectory;
+                        }
+
+                        var fonts = new List<CustomFont>();
+                        foreach (var font in segs.Fonts)
+                        {
+                            var fontJsonPath = Path.Combine(segs.BaseDir, font);
+                            // ベースディレクトリにJSONファイルがなかったら処理を終了する
+                            if (!File.Exists(fontJsonPath))
+                            {
+                                MessageBox.Show($"JSONファイルが見つかりません。\n({fontJsonPath})", "パースエラー",
+                                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+                                return;
+                            }
+
+                            using (var ffs = new FileStream(fontJsonPath, FileMode.Open))
+                            {
+                                using (var fsr = new StreamReader(ffs))
+                                {
+                                    // フォント定義JSONファイルをロード/シリアライズ/リストに追加
+                                    string fontJson = fsr.ReadToEnd();
+                                    fonts.Add(JsonConvert.DeserializeObject<CustomFont>(fontJson));
+                                }
+                            }
+                        }
+                        // ロードしたフォントを表示する
+                        DisplayData(fonts);
+                    }
+                }
+            }
         }
     }
 }
