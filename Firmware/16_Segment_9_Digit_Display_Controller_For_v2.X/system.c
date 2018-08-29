@@ -142,25 +142,44 @@ uint8_t buffer[10];
 
 void writeRTC() {
     
-    setMsg("WRITING  ");
-    
-    I2C_Init();
-    I2C_Start(0xD0);
-    I2C_Write(0x00);
-
-    I2C_Write(dec2bcd(sec)); // Seconds
-    I2C_Write(dec2bcd(min)); // Minutes
-    I2C_Write(dec2bcd(hour)); // Hours
-    I2C_Write(dec2bcd(day+1)); // Day
-    I2C_Write(dec2bcd(date+1)); // Date
-    I2C_Write(dec2bcd(mon+1)); // Month
-    I2C_Write(dec2bcd(year)); // Year
-    I2C_Stop();
-
-    setMsg("DONE     ");
+    buffer[0] = dec2bcd(sec);
+    buffer[1] = dec2bcd(min);
+    buffer[2] = dec2bcd(hour);
+    buffer[3] = dec2bcd(day+1);
+    buffer[4] = dec2bcd(date+1);
+    buffer[5] = dec2bcd(mon+1);
+    buffer[6] = dec2bcd(year);
+     
+    I2C_WriteBuff(0xD0, 0x00, buffer, 7);
 }
 
-    int counter = 0;
+enum clock_task_status_t {
+    REQUEST_DATA,
+    WAITING_DATA
+} clock_task_status;
+
+void clock_task() {
+    if (!PORTDbits.RD6) return;
+    
+    switch (clock_task_status) {
+        case REQUEST_DATA:
+            if (!I2C_isAvailable()) return;
+            I2C_RequestRead(0xD0, 0x00, 7);
+            clock_task_status = WAITING_DATA;
+            break;
+        case WAITING_DATA:
+            if (!I2C_isReadable()) return;
+            uint8_t rtcdata[7];
+            memcpy(rtcdata, I2C_ReadBuff(), 7);
+            uint8_t buffer[10];
+            sprintf(buffer, "%02d%1d%02d%02d%02d", bcd2dec(rtcdata[4]), bcd2dec(rtcdata[3]), bcd2dec(rtcdata[2] & 0x3F), bcd2dec(rtcdata[1]), bcd2dec(rtcdata[0] & 0x7F));
+            setMsg(buffer);
+            clock_task_status = REQUEST_DATA;
+            break;
+    }
+}
+
+
 //次の桁を表示する
 void interrupt isr(void) {
     if (INTCONbits.TMR0IF) {
@@ -246,31 +265,8 @@ void interrupt isr(void) {
         return;
     }
         
-    if (PORTDbits.RD6 && ++counter == 99) {
-        counter = 0;
-        I2C_Start(0xD0);
-        I2C_Write(0x00);
-        I2C_Stop();
-
-        I2C_Start(0xD1);
-
-        uint8_t rtcdata[7];
-        for (int i = 0; i < 7; i++) {
-            rtcdata[i] = I2C_Read(i == 6);
-        }
-
-        I2C_Stop();
-
-
-        uint8_t buffer[10];
-        sprintf(buffer, "%02d%1d%02d%02d%02d", bcd2dec(rtcdata[4]), bcd2dec(rtcdata[3]), bcd2dec(rtcdata[2] & 0x3F), bcd2dec(rtcdata[1]), bcd2dec(rtcdata[0] & 0x7F));
-        setMsg(buffer);
-
-        //uint8_t buffer[10];
-        //sprintf(buffer, "%09d", counter++);
-        //setMsg(buffer);
-
-    }
+    clock_task();
+    I2C_Task();
         
         
 }

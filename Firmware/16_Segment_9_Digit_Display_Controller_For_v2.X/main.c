@@ -132,6 +132,8 @@ void main(void) {
     // LED制御のタイマー設定
     T0CON = 0b11000101; //Timer0 ON, 8Bit Mode, InternalClock, 1/64 Prescale
     TMR0 = 0xFF - 125+1;
+    
+    I2C_Init();
 
     //各種割り込み許可
     //PIE1bits.TMR2IE = 1;
@@ -150,8 +152,6 @@ void main(void) {
     uint8_t digitSelector;    // 書き換え桁数
     uint32_t dotflag;  // ドットをつけるかどうか
     
-    while (PORTDbits.RD7);
-    showDemoMessage = PORTDbits.RD0;
     
     // Enable ADC
     adcInit();
@@ -164,7 +164,6 @@ void main(void) {
     USBDeviceInit();
     USBDeviceAttach();
     
-    I2C_Init();
     while (1){
         
         // DC-DC Converter
@@ -190,6 +189,7 @@ void main(void) {
                 segMap[digitSelector] = ~(fontList[RxData] | (dotflag << 16)); // 値を実際にセット
             }
         }
+        
         
         APP_DeviceCustomHIDTasks();
         
