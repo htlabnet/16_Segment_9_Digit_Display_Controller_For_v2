@@ -265,8 +265,5 @@ void interrupt isr(void) {
         return;
     }
         
-    clock_task();
-    I2C_Task();
-        
         
 }

@@ -193,5 +193,7 @@ void main(void) {
         
         APP_DeviceCustomHIDTasks();
         
+        I2C_Task();
+        clock_task();
     }
 }

@@ -19,7 +19,6 @@ bool I2C_isReadable();
 int I2C_WriteBuff(uint8_t targetAddr, uint8_t dataAddr, uint8_t* input, uint8_t count);
 int I2C_RequestRead(uint8_t targetAddr, uint8_t dataAddr, uint8_t count);
 uint8_t* I2C_ReadBuff();
-bool I2C_isReady();
 void I2C_Task();
 
 #endif	/* I2C_H */
