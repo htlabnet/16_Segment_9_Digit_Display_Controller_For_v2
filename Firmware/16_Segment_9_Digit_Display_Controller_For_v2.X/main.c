@@ -116,19 +116,6 @@ void main(void) {
     LATAbits.LATA4 = 0; // USB_VCC -> VCC
     LATAbits.LATA5 = 0; // VCC -> LED
     
-    /* MEMO
-    A/D Result High Register (ADRESH)   
-    A/D Result Low Register (ADRESL)    
-    A/D Control Register 0 (ADCON0)     (-,-,CHS3,CHS2,CHS1,CHS0,GO/Done,ADON)
-    A/D Control Register 1 (ADCON1)     (-,-,VCFG1,VCFG0,PCFG3,PCFG2,PCFG1,PCFG0)
-    A/D Control Register 2 (ADCON2)     (ADFM,-,ACQT2,ACQT1,ADCS2,ADCS1,ADCS0)
-    */
-
-    //タイマー設定。比較機が使えるTimer2を使う
-    //TMR2 = 0;
-    //PR2 = 125;
-    //T2CON = 0b01111101;
-    
     // LED制御のタイマー設定
     T0CON = 0b11000101; //Timer0 ON, 8Bit Mode, InternalClock, 1/64 Prescale
     TMR0 = 0xFF - 125+1;
@@ -136,7 +123,6 @@ void main(void) {
     I2C_Init();
 
     //各種割り込み許可
-    //PIE1bits.TMR2IE = 1;
     INTCONbits.TMR0IE = 1;
     INTCONbits.PEIE = 1;
     INTCONbits.GIE = 1;
@@ -147,10 +133,7 @@ void main(void) {
     SPBRGH  = 0;
     BRGH = 0;
     SPBRG   = 129;
-
-    uint8_t RxData;            // 受信データ用バッファ
-    uint8_t digitSelector;    // 書き換え桁数
-    uint32_t dotflag;  // ドットをつけるかどうか
+    PIE1bits.RCIE = 1;
     
     
     // Enable ADC
@@ -171,23 +154,6 @@ void main(void) {
             pwmSetInc();
         } else if (adcReadLed() > led_target_voltage + led_voltage_threshold) {
             pwmSetDec();
-        }
-            
-        if (PIR1bits.RCIF) {
-            PIR1bits.RCIF = 0;           //フラグを下げる
-            RxData = RCREG;              // 受信データを取り込む
-        
-            //もし、先頭ビットが111であれば
-            if ((RxData & 0b11100000) == 0b11100000) {
-                digitSelector = (RxData & 0b00001111);
-                dotflag = (RxData & 0b00010000) >> 4;
-                while (!PIR1bits.RCIF);      // 受信するまで待つ
-                PIR1bits.RCIF = 0;
-                RxData = RCREG;               // 受信データを取り込む
-                if (digitSelector > 8) continue;  // 無効な入力の処理
-                if (RxData > 0b01111111) RxData = ~RxData;
-                segMap[digitSelector] = ~(fontList[RxData] | (dotflag << 16)); // 値を実際にセット
-            }
         }
         
         
