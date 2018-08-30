@@ -161,5 +161,6 @@ void main(void) {
         
         I2C_Task();
         clock_task();
+        rtc_setting_task();
     }
 }

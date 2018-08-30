@@ -124,34 +124,7 @@ void handleMessage() {
     }
 }
 
-uint8_t sel_before;
-uint8_t up_before;
-uint8_t down_before;
 
-uint8_t year = 00;
-uint8_t mon  = 00;
-uint8_t date = 00;
-uint8_t day  = 00;
-uint8_t hour = 00;
-uint8_t min  = 00;
-uint8_t sec  = 00;
-
-uint8_t rtcSetState = 0;
-
-uint8_t buffer[10];
-
-void writeRTC() {
-    
-    buffer[0] = dec2bcd(sec);
-    buffer[1] = dec2bcd(min);
-    buffer[2] = dec2bcd(hour);
-    buffer[3] = dec2bcd(day+1);
-    buffer[4] = dec2bcd(date+1);
-    buffer[5] = dec2bcd(mon+1);
-    buffer[6] = dec2bcd(year);
-     
-    I2C_WriteBuff(0xD0, 0x00, buffer, 7);
-}
 
 enum clock_task_status_t {
     REQUEST_DATA,
@@ -179,6 +152,130 @@ void clock_task() {
     }
 }
 
+enum rtc_setting_status_t {
+    SETTING_YEAR,
+    SETTING_MON,
+    SETTING_DATE,
+    SETTING_DAY,
+    SETTING_HOUR,
+    SETTING_MIN,
+    SETTING_SEC,
+    REQUESTING_WRITE,
+    RTC_WRITING,
+    RTC_DONE
+} rtc_setting_status;
+
+uint8_t sel_before;
+uint8_t up_before;
+uint8_t down_before;
+
+uint8_t year = 00;
+uint8_t mon  = 00;
+uint8_t date = 00;
+uint8_t day  = 00;
+uint8_t hour = 00;
+uint8_t min  = 00;
+uint8_t sec  = 00;
+
+uint8_t buffer[10];
+
+void rtc_setting_task() {
+    if (!PORTDbits.RD7) return;
+    switch (rtc_setting_status) {
+        case SETTING_YEAR:
+            if ((BUTTON_UP != up_before) && !BUTTON_UP) year = (++year)%100;
+            if ((BUTTON_DOWN != down_before) && !BUTTON_DOWN) year = (--year)%100; 
+            if ((BUTTON_SEL != sel_before) && !BUTTON_SEL) rtc_setting_status = SETTING_MON;
+            sprintf(buffer, "YEAR-20%02d", year);
+            setMsg(buffer);
+            break;
+            
+        case SETTING_MON:
+            if ((BUTTON_UP != up_before) && !BUTTON_UP) mon = (++mon)%12;
+            if ((BUTTON_DOWN != down_before) && !BUTTON_DOWN) mon = (--mon)%12; 
+            if ((BUTTON_SEL != sel_before) && !BUTTON_SEL) rtc_setting_status = SETTING_DATE;
+            sprintf(buffer, "MON -  %2d", mon+1);
+            setMsg(buffer);
+            break;
+            
+        case SETTING_DATE:
+            if ((BUTTON_UP != up_before) && !BUTTON_UP) date = (++date)%31;
+            if ((BUTTON_DOWN != down_before) && !BUTTON_DOWN) date = (--date)%31; 
+            if ((BUTTON_SEL != sel_before) && !BUTTON_SEL) rtc_setting_status = SETTING_DAY;
+            sprintf(buffer, "DATE-  %2d", date+1);
+            setMsg(buffer);
+            break;
+            
+        case SETTING_DAY:
+            if ((BUTTON_UP != up_before) && !BUTTON_UP) day = (++day)%7;
+            if ((BUTTON_DOWN != down_before) && !BUTTON_DOWN) day = (--day)%7; 
+            if ((BUTTON_SEL != sel_before) && !BUTTON_SEL) rtc_setting_status = SETTING_HOUR;
+            sprintf(buffer, "DAY -  %2d", day+1);
+            setMsg(buffer);
+            break;
+            
+        case SETTING_HOUR:
+            if ((BUTTON_UP != up_before) && !BUTTON_UP) hour = (++hour)%24;
+            if ((BUTTON_DOWN != down_before) && !BUTTON_DOWN) hour = (--hour)%24; 
+            if ((BUTTON_SEL != sel_before) && !BUTTON_SEL) rtc_setting_status = SETTING_MIN;
+            sprintf(buffer, "HOUR-  %2d", hour);
+            setMsg(buffer);
+            break;
+            
+        case SETTING_MIN:
+            if ((BUTTON_UP != up_before) && !BUTTON_UP) min = (++min)%60;
+            if ((BUTTON_DOWN != down_before) && !BUTTON_DOWN) min = (--min)%60; 
+            if ((BUTTON_SEL != sel_before) && !BUTTON_SEL) rtc_setting_status = SETTING_SEC;
+            sprintf(buffer, "MIN -  %2d", min);
+            setMsg(buffer);
+            break;
+            
+        case SETTING_SEC:
+            if ((BUTTON_UP != up_before) && !BUTTON_UP) sec = (++sec)%60;
+            if ((BUTTON_DOWN != down_before) && !BUTTON_DOWN) sec = (--sec)%60; 
+            if ((BUTTON_SEL != sel_before) && !BUTTON_SEL) {
+                setMsg("WAITING..");
+                rtc_setting_status = REQUESTING_WRITE;
+            }
+            sprintf(buffer, "SEC -  %2d", sec);
+            setMsg(buffer);
+            break;
+            
+        case REQUESTING_WRITE:
+            if (!I2C_isAvailable()) break;
+            uint8_t write[7];
+            write[0] = dec2bcd(sec);
+            write[1] = dec2bcd(min);
+            write[2] = dec2bcd(hour);
+            write[3] = dec2bcd(day+1);
+            write[4] = dec2bcd(date+1);
+            write[5] = dec2bcd(mon+1);
+            write[6] = dec2bcd(year);
+
+            I2C_WriteBuff(0xD0, 0x00, write, 7);
+            rtc_setting_status = RTC_WRITING;
+            setMsg("WRITING  ");
+            break;
+            
+        case RTC_WRITING:
+            if (!I2C_isAvailable()) break;
+            setMsg("DONE     ");
+            rtc_setting_status = RTC_DONE;
+            break;
+            
+        case RTC_DONE:
+            break;
+            
+        default:
+            setMsg("ERROR!!!!");
+            break;
+    }
+    up_before = BUTTON_UP;
+    down_before = BUTTON_DOWN;
+    sel_before = BUTTON_SEL;
+    return;
+}
+
 
 int counter = 0;
 bool UART_ReadingNextValue = false;
@@ -188,7 +285,7 @@ uint32_t dotflag;  // ドットをつけるかどうか
 //次の桁を表示する
 void interrupt isr(void) {
     
-    
+    // UARTの処理
     if (PIR1bits.RCIF) {
         PIR1bits.RCIF = 0;           //フラグを下げる
         
@@ -209,7 +306,7 @@ void interrupt isr(void) {
     }
     
     
-    
+    // タイマー0の処理
     if (INTCONbits.TMR0IF) {
         INTCONbits.TMR0IF = 0;    // フラグを下げる
         TMR0 = 0xFF - 125+1;
@@ -223,74 +320,5 @@ void interrupt isr(void) {
     #if defined(USB_INTERRUPT)
         USBDeviceTasks();
     #endif
-
-    if (PORTDbits.RD7) { // 時刻合わせMODE
-
-        switch (rtcSetState) {
-            case 0: // year
-                if ((BUTTON_UP != up_before) && !BUTTON_UP) year = (++year)%100;
-                if ((BUTTON_DOWN != down_before) && !BUTTON_DOWN) year = (--year)%100; 
-                if ((BUTTON_SEL != sel_before) && !BUTTON_SEL) rtcSetState++;
-                sprintf(buffer, "YEAR-20%02d", year);
-                setMsg(buffer);
-                break;
-            case 1: // mon
-                if ((BUTTON_UP != up_before) && !BUTTON_UP) mon = (++mon)%12;
-                if ((BUTTON_DOWN != down_before) && !BUTTON_DOWN) mon = (--mon)%12; 
-                if ((BUTTON_SEL != sel_before) && !BUTTON_SEL) rtcSetState++;
-                sprintf(buffer, "MON -  %2d", mon+1);
-                setMsg(buffer);
-                break;
-            case 2: // date
-                if ((BUTTON_UP != up_before) && !BUTTON_UP) date = (++date)%31;
-                if ((BUTTON_DOWN != down_before) && !BUTTON_DOWN) date = (--date)%31; 
-                if ((BUTTON_SEL != sel_before) && !BUTTON_SEL) rtcSetState++;
-                sprintf(buffer, "DATE-  %2d", date+1);
-                setMsg(buffer);
-                break;
-            case 3: // day
-                if ((BUTTON_UP != up_before) && !BUTTON_UP) day = (++day)%7;
-                if ((BUTTON_DOWN != down_before) && !BUTTON_DOWN) day = (--day)%7; 
-                if ((BUTTON_SEL != sel_before) && !BUTTON_SEL) rtcSetState++;
-                sprintf(buffer, "DAY -  %2d", day+1);
-                setMsg(buffer);
-                break;
-            case 4: // hour
-                if ((BUTTON_UP != up_before) && !BUTTON_UP) hour = (++hour)%24;
-                if ((BUTTON_DOWN != down_before) && !BUTTON_DOWN) hour = (--hour)%24; 
-                if ((BUTTON_SEL != sel_before) && !BUTTON_SEL) rtcSetState++;
-                sprintf(buffer, "HOUR-  %2d", hour);
-                setMsg(buffer);
-                break;
-            case 5: // min
-                if ((BUTTON_UP != up_before) && !BUTTON_UP) min = (++min)%60;
-                if ((BUTTON_DOWN != down_before) && !BUTTON_DOWN) min = (--min)%60; 
-                if ((BUTTON_SEL != sel_before) && !BUTTON_SEL) rtcSetState++;
-                sprintf(buffer, "MIN -  %2d", min);
-                setMsg(buffer);
-                break;
-            case 6: // sec
-                if ((BUTTON_UP != up_before) && !BUTTON_UP) sec = (++sec)%60;
-                if ((BUTTON_DOWN != down_before) && !BUTTON_DOWN) sec = (--sec)%60; 
-                if ((BUTTON_SEL != sel_before) && !BUTTON_SEL) {
-                    rtcSetState++;
-                    writeRTC();
-                    break;
-                }
-                sprintf(buffer, "SEC -  %2d", sec);
-                setMsg(buffer);
-                break;
-            case 7: // done
-                break;
-            default:
-                setMsg("ERROR!!!!");
-                break;
-        }
-
-        up_before = BUTTON_UP;
-        down_before = BUTTON_DOWN;
-        sel_before = BUTTON_SEL;
-        return;
-    }
 
 }

@@ -60,5 +60,6 @@ extern uint32_t segMap[9];
 void handleMessage();
 void refreshShiftRegister(int ptr);
 void clock_task();
+void rtc_setting_task();
 
 #endif //SYSTEM_H

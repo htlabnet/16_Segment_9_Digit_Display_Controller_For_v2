@@ -57,7 +57,7 @@ int I2C_WriteBuff(uint8_t targetAddr, uint8_t dataAddr, uint8_t* input, uint8_t 
     i2c_dataAddr = dataAddr;
     i2c_count = count;
     i2c_itr = 0;
-    memcpy(input, i2c_buff, count);
+    memcpy(i2c_buff, input, count);
     I2C_Module_Status = WRITE_START;
     return 0;
 }
@@ -89,41 +89,36 @@ void I2C_Task() {
             break;
             
         case WRITE_START:
-            //if (!I2C_isReady()) return;
             SSPCON2bits.SEN = 1;
             I2C_Module_Status = WRITE_TARGET;
             break;
             
         case WRITE_TARGET:
-            //if (!I2C_isReady()) return;
+            if (SSPCON2bits.SEN) return;
             SSPBUF = i2c_targetAddr;
             I2C_Module_Status = WRITE_ADDR;
             break;
             
         case WRITE_ADDR:
-           //if (!I2C_isReady()) return;
+            if (SSPSTATbits.BF || (SSPSTATbits.R_nW)) return;
             SSPBUF = i2c_dataAddr;
             I2C_Module_Status = WRITE_CONTENT;
             break;
             
         case WRITE_CONTENT:
-            //if (!I2C_isReady()) return;
-            if (i2c_itr == i2c_count) {
-                I2C_Module_Status = WRITE_STOP;
-                return;
-            }
+            if (SSPSTATbits.BF || (SSPSTATbits.R_nW)) return;
             SSPBUF = i2c_buff[i2c_itr++];
+            if (i2c_itr == i2c_count) I2C_Module_Status = WRITE_STOP;
             break;
             
         case WRITE_STOP:
-            //if (!I2C_isReady()) return;
+            if (SSPSTATbits.BF || (SSPSTATbits.R_nW)) return;
             PEN = 1;
             I2C_Module_Status = WRITE_CHECKSTOP;
             break;
             
         case WRITE_CHECKSTOP:
-            if (PEN == 1) return;
-            SSPIF = 0;
+            if (PEN) return;
             I2C_Module_Status = IDLE;
             break;
         // --------------------------------------- :: READ :: ------
