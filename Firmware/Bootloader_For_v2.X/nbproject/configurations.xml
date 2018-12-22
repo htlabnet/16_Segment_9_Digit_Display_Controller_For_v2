@@ -4,24 +4,6 @@
     <logicalFolder name="HeaderFiles"
                    displayName="Header Files"
                    projectFiles="true">
-      <logicalFolder name="f1" displayName="usb" projectFiles="true">
-        <itemPath>usb.h</itemPath>
-        <itemPath>usb_ch9.h</itemPath>
-        <itemPath>usb_common.h</itemPath>
-        <itemPath>usb_config.h</itemPath>
-        <itemPath>usb_device.h</itemPath>
-        <itemPath>usb_device_hid.h</itemPath>
-        <itemPath>usb_device_local.h</itemPath>
-        <itemPath>usb_hal.h</itemPath>
-        <itemPath>usb_hal_pic18.h</itemPath>
-      </logicalFolder>
-      <itemPath>system.h</itemPath>
-      <itemPath>app_device_custom_hid.h</itemPath>
-      <itemPath>app_led_usb_status.h</itemPath>
-      <itemPath>fixed_address_memory.h</itemPath>
-      <itemPath>segFonts.h</itemPath>
-      <itemPath>utilities.h</itemPath>
-      <itemPath>i2c.h</itemPath>
     </logicalFolder>
     <logicalFolder name="LinkerScript"
                    displayName="Linker Files"
@@ -30,18 +12,6 @@
     <logicalFolder name="SourceFiles"
                    displayName="Source Files"
                    projectFiles="true">
-      <logicalFolder name="f1" displayName="usb" projectFiles="true">
-        <itemPath>usb_descriptors.c</itemPath>
-        <itemPath>usb_device.c</itemPath>
-        <itemPath>usb_device_hid.c</itemPath>
-        <itemPath>usb_events.c</itemPath>
-      </logicalFolder>
-      <itemPath>main.c</itemPath>
-      <itemPath>app_device_custom_hid.c</itemPath>
-      <itemPath>app_led_usb_status.c</itemPath>
-      <itemPath>system.c</itemPath>
-      <itemPath>utilities.c</itemPath>
-      <itemPath>i2c.c</itemPath>
     </logicalFolder>
     <logicalFolder name="ExternalFiles"
                    displayName="Important Files"
@@ -49,9 +19,6 @@
       <itemPath>Makefile</itemPath>
     </logicalFolder>
   </logicalFolder>
-  <sourceRootList>
-    <Elem>../../../Desktop</Elem>
-  </sourceRootList>
   <projectmakefile>Makefile</projectmakefile>
   <confs>
     <conf name="default" type="2">
@@ -60,7 +27,7 @@
         <targetDevice>PIC18F4553</targetDevice>
         <targetHeader></targetHeader>
         <targetPluginBoard></targetPluginBoard>
-        <platformTool>PICkit3PlatformTool</platformTool>
+        <platformTool>pk4hybrid</platformTool>
         <languageToolchain>XC8</languageToolchain>
         <languageToolchainVersion>2.00</languageToolchainVersion>
         <platform>3</platform>
@@ -93,24 +60,31 @@
         <makeCustomizationNormalizeHexFile>false</makeCustomizationNormalizeHexFile>
       </makeCustomizationType>
       <HI-TECH-COMP>
+        <property key="additional-warnings" value="true"/>
         <property key="asmlist" value="true"/>
+        <property key="default-bitfield-type" value="true"/>
+        <property key="default-char-type" value="true"/>
         <property key="define-macros" value=""/>
-        <property key="disable-optimizations" value="false"/>
+        <property key="disable-optimizations" value="true"/>
         <property key="extra-include-directories" value=""/>
         <property key="favor-optimization-for" value="-speed,+space"/>
+        <property key="garbage-collect-data" value="true"/>
+        <property key="garbage-collect-functions" value="true"/>
         <property key="identifier-length" value="255"/>
         <property key="local-generation" value="false"/>
-        <property key="operation-mode" value="free"/>
+        <property key="operation-mode" value="pro"/>
         <property key="opt-xc8-compiler-strict_ansi" value="false"/>
         <property key="optimization-assembler" value="true"/>
-        <property key="optimization-assembler-files" value="true"/>
+        <property key="optimization-assembler-files" value="false"/>
         <property key="optimization-debug" value="false"/>
         <property key="optimization-invariant-enable" value="false"/>
         <property key="optimization-invariant-value" value="16"/>
         <property key="optimization-level" value="-O0"/>
         <property key="optimization-speed" value="false"/>
         <property key="optimization-stable-enable" value="false"/>
+        <property key="pack-struct" value="true"/>
         <property key="preprocess-assembler" value="true"/>
+        <property key="short-enums" value="true"/>
         <property key="undefine-macros" value=""/>
         <property key="use-cci" value="false"/>
         <property key="use-iar" value="false"/>
@@ -162,50 +136,8 @@
         <property key="opt-xc8-linker-link_startup" value="false"/>
         <property key="opt-xc8-linker-serial" value=""/>
         <property key="program-the-device-with-default-config-words" value="true"/>
+        <property key="remove-unused-sections" value="true"/>
       </HI-TECH-LINK>
-      <PICkit3PlatformTool>
-        <property key="AutoSelectMemRanges" value="auto"/>
-        <property key="Freeze Peripherals" value="true"/>
-        <property key="SecureSegment.SegmentProgramming" value="FullChipProgramming"/>
-        <property key="ToolFirmwareFilePath"
-                  value="Press to browse for a specific firmware version"/>
-        <property key="ToolFirmwareOption.UseLatestFirmware" value="true"/>
-        <property key="debugoptions.useswbreakpoints" value="false"/>
-        <property key="firmware.download.all" value="false"/>
-        <property key="hwtoolclock.frcindebug" value="false"/>
-        <property key="memories.aux" value="false"/>
-        <property key="memories.bootflash" value="true"/>
-        <property key="memories.configurationmemory" value="true"/>
-        <property key="memories.configurationmemory2" value="true"/>
-        <property key="memories.dataflash" value="true"/>
-        <property key="memories.eeprom" value="true"/>
-        <property key="memories.flashdata" value="true"/>
-        <property key="memories.id" value="true"/>
-        <property key="memories.instruction.ram" value="true"/>
-        <property key="memories.instruction.ram.ranges"
-                  value="${memories.instruction.ram.ranges}"/>
-        <property key="memories.programmemory" value="true"/>
-        <property key="memories.programmemory.ranges" value="0-7fff"/>
-        <property key="poweroptions.powerenable" value="false"/>
-        <property key="programmertogo.imagename" value=""/>
-        <property key="programoptions.donoteraseauxmem" value="false"/>
-        <property key="programoptions.eraseb4program" value="true"/>
-        <property key="programoptions.pgmspeed" value="2"/>
-        <property key="programoptions.preservedataflash" value="false"/>
-        <property key="programoptions.preservedataflash.ranges"
-                  value="${programoptions.preservedataflash.ranges}"/>
-        <property key="programoptions.preserveeeprom" value="false"/>
-        <property key="programoptions.preserveeeprom.ranges" value="0-ff"/>
-        <property key="programoptions.preserveprogram.ranges" value=""/>
-        <property key="programoptions.preserveprogramrange" value="false"/>
-        <property key="programoptions.preserveuserid" value="false"/>
-        <property key="programoptions.programcalmem" value="false"/>
-        <property key="programoptions.programuserotp" value="false"/>
-        <property key="programoptions.testmodeentrymethod" value="VDDFirst"/>
-        <property key="programoptions.usehighvoltageonmclr" value="false"/>
-        <property key="programoptions.uselvpprogramming" value="false"/>
-        <property key="voltagevalue" value="4.5"/>
-      </PICkit3PlatformTool>
       <XC8-config-global>
         <property key="advanced-elf" value="true"/>
         <property key="gcc-opt-driver-new" value="true"/>
@@ -219,6 +151,51 @@
         <property key="stack-type" value="compiled"/>
         <property key="user-pack-device-support" value=""/>
       </XC8-config-global>
+      <pk4hybrid>
+        <property key="AutoSelectMemRanges" value="auto"/>
+        <property key="Freeze Peripherals" value="true"/>
+        <property key="ToolFirmwareFilePath"
+                  value="Press to browse for a specific firmware version"/>
+        <property key="ToolFirmwareOption.UpdateOptions"
+                  value="ToolFirmwareOption.UseLatest"/>
+        <property key="communication.interface"
+                  value="${communication.interface.default}"/>
+        <property key="communication.speed" value="${communication.speed.default}"/>
+        <property key="debugoptions.useswbreakpoints" value="false"/>
+        <property key="memories.aux" value="false"/>
+        <property key="memories.bootflash" value="true"/>
+        <property key="memories.configurationmemory" value="true"/>
+        <property key="memories.configurationmemory2" value="true"/>
+        <property key="memories.dataflash" value="true"/>
+        <property key="memories.eeprom" value="true"/>
+        <property key="memories.exclude.configurationmemory" value="true"/>
+        <property key="memories.flashdata" value="true"/>
+        <property key="memories.id" value="true"/>
+        <property key="memories.instruction.ram.ranges"
+                  value="${memories.instruction.ram.ranges}"/>
+        <property key="memories.programmemory" value="true"/>
+        <property key="memories.programmemory.ranges" value="0-7fff"/>
+        <property key="poweroptions.powerenable" value="false"/>
+        <property key="programoptions.donoteraseauxmem" value="false"/>
+        <property key="programoptions.eraseb4program" value="true"/>
+        <property key="programoptions.ledbrightness" value="5"/>
+        <property key="programoptions.pgcconfig" value="pull down"/>
+        <property key="programoptions.pgcresistor.value" value="4.7"/>
+        <property key="programoptions.pgdconfig" value="pull down"/>
+        <property key="programoptions.pgdresistor.value" value="4.7"/>
+        <property key="programoptions.pgmentry.voltage" value="high"/>
+        <property key="programoptions.pgmspeed" value="Med"/>
+        <property key="programoptions.preservedataflash" value="false"/>
+        <property key="programoptions.preserveeeprom" value="false"/>
+        <property key="programoptions.preserveeeprom.ranges" value="0-ff"/>
+        <property key="programoptions.preserveprogram.ranges" value=""/>
+        <property key="programoptions.preserveprogramrange" value="false"/>
+        <property key="programoptions.preserveuserid" value="false"/>
+        <property key="programoptions.programcalmem" value="false"/>
+        <property key="programoptions.programuserotp" value="false"/>
+        <property key="programoptions.testmodeentrymethod" value="VDDFirst"/>
+        <property key="voltagevalue" value="5.0"/>
+      </pk4hybrid>
     </conf>
   </confs>
 </configurationDescriptor>
