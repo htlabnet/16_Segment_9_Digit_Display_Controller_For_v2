@@ -390,9 +390,27 @@ void _entry (void)
  *                  PERFORM ANY OPERATIONS THAT WILL REQUIRE C INITIALIZED
  *                  BEHAVIOR.
  *****************************************************************************/
+
 #define ENABLE_IO_PIN_CHECK_BOOTLOADER_ENTRY
-void main(void)
-{
+void main(void) {
+    
+    ADCON1 = 0b00001111; //All Digital
+    CMCON  = 0b00000111; //No Comparator
+    TRISA  = 0b00001111;
+    TRISB  = 0b00000011;
+    TRISC  = 0b10000000; //Rxのみ入力
+    TRISD  = 0b11111111;
+    TRISE  = 0b00000111;
+    
+    PORTEbits.RDPU = 1;
+
+    LATCbits.LATC0 = 0; // OUTPUT ENABLE
+    LATCbits.LATC1 = 1; // CLEAR
+
+    LATCbits.LATC2 = 0; // PWM
+    
+    
+    
     //Assuming the I/O pin check entry method is enabled, check the I/O pin value
     //to see if we should stay in bootloader mode, or jump to normal applicaiton 
     //execution mode.
