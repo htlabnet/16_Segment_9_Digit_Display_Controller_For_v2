@@ -6,9 +6,9 @@
             <name>Bootloader_For_v2</name>
             <creation-uuid>ee8398aa-309b-463a-ba0a-bf2ce5ffc855</creation-uuid>
             <make-project-type>0</make-project-type>
-            <c-extensions/>
+            <c-extensions>c</c-extensions>
             <cpp-extensions/>
-            <header-extensions/>
+            <header-extensions>h</header-extensions>
             <asminc-extensions/>
             <sourceEncoding>UTF-8</sourceEncoding>
             <make-dep-projects/>
