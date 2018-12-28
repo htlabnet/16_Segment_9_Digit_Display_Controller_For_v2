@@ -40,7 +40,7 @@ please contact mla_licensing@microchip.com
 //commented out to save code space (and/or if there are no LEDs available on
 //the actual target application board).  If this option is uncommented, you must
 //provide the proper LED pin definitions in the HardwareProfile.h file.
-#define ENABLE_USB_LED_BLINK_STATUS     
+//#define ENABLE_USB_LED_BLINK_STATUS     
 
 
 //USB VBUS sensing and USB Bus/Self power sensing options.

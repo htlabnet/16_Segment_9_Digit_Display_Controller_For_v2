@@ -58,8 +58,8 @@ please contact mla_licensing@microchip.com
     #endif
 
     //LED definition, applicable if using ENABLE_USB_LED_BLINK_STATUS option in usb_config.h
-    #define mLED1       LATDbits.LATD0
-    #define mLED1Tris   TRISDbits.TRISD0
+    //#define mLED1       LATDbits.LATD0
+    //#define mLED1Tris   TRISDbits.TRISD0
     /** SWITCH *********************************************************/
     #define mInitSwitch2()      {ADCON1 = 0x0F; TRISDbits.TRISD1 = 1;}
     #define sw2                 PORTDbits.RD1
