@@ -30,13 +30,14 @@
 | 8 | 時刻設定モード |
 
 ## ファームの書き込み方
-1. このreleaseのv2.1.0.hexと、このレポジトリにある/Software/bootloader/bin/win/HIDBootloader.exeをダウンロードします。
-2. LEDボードを取り外し、コントローラーのDIPスイッチの1番を有効にして、コンピューターにUSB接続します。
-3. HIDBootloader.exeを起動します。(Device Attached. と表示されているはずです。Device Detached.の場合はDIPスイッチが正しく設定されているかを確認してください。)
-4. ファイルオープンアイコン(一番左)をクリックし、先ほどダウンロードしたv2.1.0.hexを指定します。
-5. Erase/Program/Verify Deviceアイコン(真ん中)をクリックし、書き込みます。
-6. Erase/Program/Verify sequence completed successfully.と表示されたら、USBを抜き、DIPスイッチの1番を無効にします。
-7. LEDと電源を接続して、正しく動作していれば完了です。
+1. このレポジトリにある/Software/bootloader/bin/win/HIDBootloader.exeをダウンロードします。
+2. このレポジトリのreleaseページから最新のバージョンのhexファイルをダウンロードします。
+3. LEDボードを取り外し、コントローラーのDIPスイッチの1番を有効にして、コンピューターにUSB接続します。
+4. HIDBootloader.exeを起動します。(Device Attached. と表示されているはずです。Device Detached.の場合はDIPスイッチが正しく設定されているかを確認してください。)
+5. ファイルオープンアイコン(一番左)をクリックし、2.でダウンロードしたhexファイルを指定します。
+6. Erase/Program/Verify Deviceアイコン(真ん中)をクリックし、書き込みます。
+7. Erase/Program/Verify sequence completed successfully.と表示されたら、USBを抜き、DIPスイッチの1番を無効にします。
+8. LEDと電源を接続して、正しく動作していれば完了です。
 
 ## シリアル通信仕様 
 文字を設定する桁や、ドットの有無を指定する「コマンドバイト」と、  
