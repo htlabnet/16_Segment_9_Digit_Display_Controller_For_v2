@@ -133,8 +133,8 @@ void main(void) {
     SPBRG   = 129;
     PIE1bits.RCIE = 1;
     
-    while (PORTDbits.RD7);
-    showDemoMessage = PORTDbits.RD0;
+    while (DIP_SET_TIME);
+    showDemoMessage = DIP_SHOW_DEMO;
     
     // Enable ADC
     adcInit();

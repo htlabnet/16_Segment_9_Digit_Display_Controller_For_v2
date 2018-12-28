@@ -204,7 +204,7 @@ void interrupt isr(void) {
         USBDeviceTasks();
     #endif
 
-    if (PORTDbits.RD7) { // 時刻合わせMODE
+    if (DIP_SET_TIME) { // 時刻合わせMODE
 
         switch (rtcSetState) {
             case 0: // year
@@ -273,7 +273,7 @@ void interrupt isr(void) {
         return;
     }
         
-    if (PORTDbits.RD6 && ++counter == 99) {
+    if (DIP_SHOW_TIME && ++counter == 99) {
         counter = 0;
         I2C_Start(0xD0);
         I2C_Write(0x00);

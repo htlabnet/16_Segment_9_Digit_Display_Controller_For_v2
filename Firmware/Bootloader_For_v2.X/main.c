@@ -391,6 +391,18 @@ void _entry (void)
  *                  BEHAVIOR.
  *****************************************************************************/
 
+#define DIP_BOOTLOADER PORTDbits.RD0
+#define DIP_SHOW_DEMO PORTDbits.RD1 // :: ↓ implemented in 16_Segment_9_Digit_Display_Controller_For_v2 ↓ ::
+//#define  PORTDbits.RD2
+//#define  PORTDbits.RD3
+//#define  PORTDbits.RD4
+//#define  PORTDbits.RD5
+#define DIP_SHOW_TIME PORTDbits.RD6
+#define DIP_SET_TIME PORTDbits.RD7 //--------------------------------------------------------------------------
+
+#define mInitSwitch()      {ADCON1 = 0x0F; TRISDbits.TRISD0 = 1;}
+#define mDeInitSwitch()    {ADCON1 = 0x07;} 
+
 #define ENABLE_IO_PIN_CHECK_BOOTLOADER_ENTRY
 void main(void) {
     
@@ -417,14 +429,14 @@ void main(void) {
     #ifdef ENABLE_IO_PIN_CHECK_BOOTLOADER_ENTRY
         //Need to make sure the I/O pin is configured for digital mode so we
         //can sense the digital level on the input pin.
-        mInitSwitch2();
+        mInitSwitch();
         //Check Bootload Mode Entry Condition from the I/O pin (ex: place a  
         //pushbutton and pull up resistor on the pin)
-        if (sw2 == 1) {
+        if (DIP_BOOTLOADER == 1) {
             //If we get to here, the user is not pressing the pushbutton.  We
             //should default to jumping into application run mode in this case.
             //Restore default "reset" value of registers we may have modified temporarily.
-            mDeInitSwitch2();
+            mDeInitSwitch();
     
             //Before going to application image however, make sure the image
             //is properly signed and is intact.

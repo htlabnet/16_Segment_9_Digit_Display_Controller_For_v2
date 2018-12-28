@@ -49,6 +49,15 @@ const uint16_t MESSAGE_LENGTH = (int)(sizeof(DEMO_MESSAGE)/sizeof(char));
 #define BUTTON_DOWN PORTEbits.RE1
 #define BUTTON_SEL  PORTEbits.RE2
 
+#define DIP_BOOTLOADER PORTDbits.RD0 // implemented in Bootloader_For_v2
+#define DIP_SHOW_DEMO PORTDbits.RD1
+//#define  PORTDbits.RD2
+//#define  PORTDbits.RD3
+//#define  PORTDbits.RD4
+//#define  PORTDbits.RD5
+#define DIP_SHOW_TIME PORTDbits.RD6
+#define DIP_SET_TIME PORTDbits.RD7
+
 extern uint8_t digitPtr; // 現在表示している桁数
 extern bool    showDemoMessage;
 
