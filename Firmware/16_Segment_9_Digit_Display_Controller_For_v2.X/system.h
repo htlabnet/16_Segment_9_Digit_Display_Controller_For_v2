@@ -51,7 +51,7 @@ const uint16_t MESSAGE_LENGTH = (int)(sizeof(DEMO_MESSAGE)/sizeof(char));
 
 #define DIP_BOOTLOADER PORTDbits.RD0 // implemented in Bootloader_For_v2
 #define DIP_SHOW_DEMO PORTDbits.RD1
-//#define  PORTDbits.RD2
+#define DIP_SHOW_ALL PORTDbits.RD2
 //#define  PORTDbits.RD3
 //#define  PORTDbits.RD4
 //#define  PORTDbits.RD5
