@@ -432,7 +432,7 @@ void main(void) {
         mInitSwitch();
         //Check Bootload Mode Entry Condition from the I/O pin (ex: place a  
         //pushbutton and pull up resistor on the pin)
-        if (DIP_BOOTLOADER == 1) {
+        if (DIP_BOOTLOADER == 0) {
             //If we get to here, the user is not pressing the pushbutton.  We
             //should default to jumping into application run mode in this case.
             //Restore default "reset" value of registers we may have modified temporarily.
