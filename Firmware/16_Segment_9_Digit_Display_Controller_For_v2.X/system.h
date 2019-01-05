@@ -27,6 +27,7 @@ please contact mla_licensing@microchip.com
 
 #include "i2c.h"
 #include "usb.h"
+#include "uart.h"
 #include "fixed_address_memory.h"
 #include "utilities.h"
 

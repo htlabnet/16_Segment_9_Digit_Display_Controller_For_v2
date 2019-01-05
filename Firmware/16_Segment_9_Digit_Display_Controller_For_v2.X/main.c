@@ -22,6 +22,7 @@
 #include "utilities.h"
 #include "i2c.h"
 #include "usb.h"
+#include "uart.h"
 #include "usb_device_hid.h"
 #include "app_device_custom_hid.h"
 #include "app_led_usb_status.h"
@@ -165,6 +166,7 @@ void main(void) {
         
         APP_DeviceCustomHIDTasks();
         
+								uart_task();
         I2C_Task();
         clock_task();
         rtc_setting_task();

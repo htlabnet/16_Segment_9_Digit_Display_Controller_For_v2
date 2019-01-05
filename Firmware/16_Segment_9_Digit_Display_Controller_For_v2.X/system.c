@@ -277,31 +277,18 @@ void rtc_setting_task() {
 }
 
 
-int counter = 0;
-bool UART_ReadingNextValue = false;
-uint8_t digitSelector;    // 書き換え桁数
-uint32_t dotflag;  // ドットをつけるかどうか
-
 //次の桁を表示する
 void interrupt isr(void) {
     
     // UARTの処理
     if (PIR1bits.RCIF) {
-        PIR1bits.RCIF = 0;           //フラグを下げる
+        PIR1bits.RCIF = 0;
         
-        uint8_t RxData = RCREG;            // 受信データ用バッファ
-        
-        if (UART_ReadingNextValue == false) {
-            if ((RxData & 0b11100000) == 0b11100000) {
-                digitSelector = (RxData & 0b00001111);
-                dotflag = (RxData & 0b00010000) >> 4;
-                UART_ReadingNextValue = true;
-            }
+        uint8_t RxData = RCREG;
+        if (uartBuffIsWriteAble()) {
+												writeUartBuff(RxData);
         } else {
-            UART_ReadingNextValue = false;
-            if (digitSelector > 8) return;  // 無効な入力の処理
-            if (RxData > 0b01111111) RxData = ~RxData;
-            segMap[digitSelector] = ~(fontList[RxData] | (dotflag << 16)); // 値を実際にセット
+												//   ¯＼_(ツ)_／¯
         }
     }
     
