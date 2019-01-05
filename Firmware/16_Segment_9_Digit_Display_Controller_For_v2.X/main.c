@@ -135,6 +135,12 @@ void main(void) {
     SPBRG   = 129;
     PIE1bits.RCIE = 1;
     
+    if (DIP_SHOW_ALL) {
+        for(int i = 0; i < 9; i++) {
+            segMap[i] = 0b100000000000000000;
+        }
+    }
+    showDemoMessage = DIP_SHOW_DEMO;
     
     // Enable ADC
     adcInit();
