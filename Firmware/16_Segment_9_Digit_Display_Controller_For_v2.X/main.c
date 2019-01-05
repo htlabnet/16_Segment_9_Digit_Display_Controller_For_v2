@@ -17,12 +17,7 @@
 #include <string.h>
 #include <stdbool.h>
 
-#include "segFonts.h"
 #include "system.h"
-#include "utilities.h"
-#include "i2c.h"
-#include "usb.h"
-#include "uart.h"
 #include "usb_device_hid.h"
 #include "app_device_custom_hid.h"
 #include "app_led_usb_status.h"
@@ -129,11 +124,10 @@ void main(void) {
     INTCONbits.GIE = 1;
 
     // UART設定
+				TXSTA   = 0b00000000;
     RCSTA   = 0b10010000;
-    BAUDCON = 0b00001000;
-    SPBRGH  = 0;
-    BRGH = 0;
-    SPBRG   = 129;
+    BAUDCON = 0b00000000;
+    SPBRG   = 77;
     PIE1bits.RCIE = 1;
     
     if (DIP_SHOW_ALL) {
@@ -162,7 +156,6 @@ void main(void) {
         } else if (adcReadLed() > led_target_voltage + led_voltage_threshold) {
             pwmSetDec();
         }
-        
         
         APP_DeviceCustomHIDTasks();
         
