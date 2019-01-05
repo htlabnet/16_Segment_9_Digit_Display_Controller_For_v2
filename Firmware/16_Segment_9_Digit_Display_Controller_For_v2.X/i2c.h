@@ -9,22 +9,16 @@
 #define	I2C_H
 
 #include <stdint.h>
+#include <stdbool.h>
+#include <string.h>
 #include <xc.h>
 
 void I2C_Init();
-
-char I2C_Start(char slave_write_address);
-
-void I2C_Ready();
-
-char I2C_Write(unsigned char data);
-
-char I2C_Stop();
-
-char I2C_Read(char flag);
-
-void I2C_Ack();
-
-void I2C_Nack();
+bool I2C_isAvailable();
+bool I2C_isReadable();
+int I2C_WriteBuff(uint8_t targetAddr, uint8_t dataAddr, uint8_t* input, uint8_t count);
+int I2C_RequestRead(uint8_t targetAddr, uint8_t dataAddr, uint8_t count);
+uint8_t* I2C_ReadBuff();
+void I2C_Task();
 
 #endif	/* I2C_H */

@@ -19,51 +19,6 @@ please contact mla_licensing@microchip.com
 
 #include "system.h"
 
-/** CONFIGURATION Bits **********************************************/
-#pragma config PLLDIV   = 5         // (20 MHz crystal on PICDEM FS USB board)
-#pragma config CPUDIV   = OSC1_PLL2
-#pragma config USBDIV   = 2         // Clock source from 96MHz PLL/2
-//#pragma config FOSC     = HSPLL_HS
-#pragma config FCMEN    = OFF
-#pragma config IESO     = OFF
-#pragma config PWRT     = OFF
-#pragma config BOR      = ON
-#pragma config BORV     = 3
-#pragma config VREGEN   = ON      //USB Voltage Regulator
-#pragma config WDT      = OFF
-#pragma config WDTPS    = 32768
-#pragma config MCLRE    = ON
-#pragma config LPT1OSC  = OFF
-#pragma config PBADEN   = OFF
-//#pragma config CCP2MX   = ON
-#pragma config STVREN   = ON
-#pragma config LVP      = OFF
-//#pragma config ICPRT    = OFF       // Dedicated In-Circuit Debug/Programming
-#pragma config XINST    = OFF       // Extended Instruction Set
-#pragma config CP0      = OFF
-#pragma config CP1      = OFF
-//#pragma config CP2      = OFF
-//#pragma config CP3      = OFF
-#pragma config CPB      = OFF
-//#pragma config CPD      = OFF
-#pragma config WRT0     = OFF
-#pragma config WRT1     = OFF
-//#pragma config WRT2     = OFF
-//#pragma config WRT3     = OFF
-#pragma config WRTB     = OFF       // Boot Block Write Protection
-#pragma config WRTC     = OFF
-//#pragma config WRTD     = OFF
-#pragma config EBTR0    = OFF
-#pragma config EBTR1    = OFF
-//#pragma config EBTR2    = OFF
-//#pragma config EBTR3    = OFF
-#pragma config EBTRB    = OFF
-
-#pragma config FOSC  = HS       // 20MHz Xtal(分周なし)
-#pragma config MCLRE = ON       // リセットピンを利用する
-#pragma config LVP   = OFF      // 低電圧プログラミング機能使用しない(OFF)
-#pragma config WDT   = OFF      // ウォッチドッグタイマーを利用しない
-
 uint8_t digitPtr = 0; // 現在表示している桁数
 bool    showDemoMessage = false;
 
@@ -112,7 +67,7 @@ uint8_t disdot[9];
 uint16_t writeItr = 0;
 
 void handleMessage() {
-    if (divisor++ == 500) {
+    if (divisor++ == 1500) {
         divisor = 0;
         
         if (writeItr++ == MESSAGE_LENGTH-9) writeItr = 0;
@@ -123,6 +78,47 @@ void handleMessage() {
         
     }
 }
+
+
+
+enum clock_task_status_t {
+    REQUEST_DATA,
+    WAITING_DATA
+} clock_task_status;
+
+void clock_task() {
+    if (!DIP_SHOW_TIME) return;
+    
+    switch (clock_task_status) {
+        case REQUEST_DATA:
+            if (!I2C_isAvailable()) return;
+            I2C_RequestRead(0xD0, 0x00, 7);
+            clock_task_status = WAITING_DATA;
+            break;
+        case WAITING_DATA:
+            if (!I2C_isReadable()) return;
+            uint8_t rtcdata[7];
+            memcpy(rtcdata, I2C_ReadBuff(), 7);
+            uint8_t buffer[10];
+            sprintf(buffer, "%02d%1d%02d%02d%02d", bcd2dec(rtcdata[4]), bcd2dec(rtcdata[3]), bcd2dec(rtcdata[2] & 0x3F), bcd2dec(rtcdata[1]), bcd2dec(rtcdata[0] & 0x7F));
+            setMsg(buffer);
+            clock_task_status = REQUEST_DATA;
+            break;
+    }
+}
+
+enum rtc_setting_status_t {
+    SETTING_YEAR,
+    SETTING_MON,
+    SETTING_DATE,
+    SETTING_DAY,
+    SETTING_HOUR,
+    SETTING_MIN,
+    SETTING_SEC,
+    REQUESTING_WRITE,
+    RTC_WRITING,
+    RTC_DONE
+} rtc_setting_status;
 
 uint8_t sel_before;
 uint8_t up_before;
@@ -136,60 +132,123 @@ uint8_t hour = 00;
 uint8_t min  = 00;
 uint8_t sec  = 00;
 
-uint8_t rtcSetState = 0;
-
 uint8_t buffer[10];
 
-void writeRTC() {
-    
-    setMsg("WRITING  ");
-    
-    I2C_Init();
-    I2C_Start(0xD0);
-    I2C_Write(0x00);
+void rtc_setting_task() {
+    if (!DIP_SET_TIME) return;
+    switch (rtc_setting_status) {
+        case SETTING_YEAR:
+            if ((BUTTON_UP != up_before) && !BUTTON_UP) year = (++year)%100;
+            if ((BUTTON_DOWN != down_before) && !BUTTON_DOWN) year = (--year)%100; 
+            if ((BUTTON_SEL != sel_before) && !BUTTON_SEL) rtc_setting_status = SETTING_MON;
+            sprintf(buffer, "YEAR-20%02d", year);
+            setMsg(buffer);
+            break;
+            
+        case SETTING_MON:
+            if ((BUTTON_UP != up_before) && !BUTTON_UP) mon = (++mon)%12;
+            if ((BUTTON_DOWN != down_before) && !BUTTON_DOWN) mon = (--mon)%12; 
+            if ((BUTTON_SEL != sel_before) && !BUTTON_SEL) rtc_setting_status = SETTING_DATE;
+            sprintf(buffer, "MON -  %2d", mon+1);
+            setMsg(buffer);
+            break;
+            
+        case SETTING_DATE:
+            if ((BUTTON_UP != up_before) && !BUTTON_UP) date = (++date)%31;
+            if ((BUTTON_DOWN != down_before) && !BUTTON_DOWN) date = (--date)%31; 
+            if ((BUTTON_SEL != sel_before) && !BUTTON_SEL) rtc_setting_status = SETTING_DAY;
+            sprintf(buffer, "DATE-  %2d", date+1);
+            setMsg(buffer);
+            break;
+            
+        case SETTING_DAY:
+            if ((BUTTON_UP != up_before) && !BUTTON_UP) day = (++day)%7;
+            if ((BUTTON_DOWN != down_before) && !BUTTON_DOWN) day = (--day)%7; 
+            if ((BUTTON_SEL != sel_before) && !BUTTON_SEL) rtc_setting_status = SETTING_HOUR;
+            sprintf(buffer, "DAY -  %2d", day+1);
+            setMsg(buffer);
+            break;
+            
+        case SETTING_HOUR:
+            if ((BUTTON_UP != up_before) && !BUTTON_UP) hour = (++hour)%24;
+            if ((BUTTON_DOWN != down_before) && !BUTTON_DOWN) hour = (--hour)%24; 
+            if ((BUTTON_SEL != sel_before) && !BUTTON_SEL) rtc_setting_status = SETTING_MIN;
+            sprintf(buffer, "HOUR-  %2d", hour);
+            setMsg(buffer);
+            break;
+            
+        case SETTING_MIN:
+            if ((BUTTON_UP != up_before) && !BUTTON_UP) min = (++min)%60;
+            if ((BUTTON_DOWN != down_before) && !BUTTON_DOWN) min = (--min)%60; 
+            if ((BUTTON_SEL != sel_before) && !BUTTON_SEL) rtc_setting_status = SETTING_SEC;
+            sprintf(buffer, "MIN -  %2d", min);
+            setMsg(buffer);
+            break;
+            
+        case SETTING_SEC:
+            if ((BUTTON_UP != up_before) && !BUTTON_UP) sec = (++sec)%60;
+            if ((BUTTON_DOWN != down_before) && !BUTTON_DOWN) sec = (--sec)%60; 
+            if ((BUTTON_SEL != sel_before) && !BUTTON_SEL) {
+                setMsg("WAITING..");
+                rtc_setting_status = REQUESTING_WRITE;
+            }
+            sprintf(buffer, "SEC -  %2d", sec);
+            setMsg(buffer);
+            break;
+            
+        case REQUESTING_WRITE:
+            if (!I2C_isAvailable()) break;
+            uint8_t write[7];
+            write[0] = dec2bcd(sec);
+            write[1] = dec2bcd(min);
+            write[2] = dec2bcd(hour);
+            write[3] = dec2bcd(day+1);
+            write[4] = dec2bcd(date+1);
+            write[5] = dec2bcd(mon+1);
+            write[6] = dec2bcd(year);
 
-    I2C_Write(dec2bcd(sec)); // Seconds
-    I2C_Write(dec2bcd(min)); // Minutes
-    I2C_Write(dec2bcd(hour)); // Hours
-    I2C_Write(dec2bcd(day+1)); // Day
-    I2C_Write(dec2bcd(date+1)); // Date
-    I2C_Write(dec2bcd(mon+1)); // Month
-    I2C_Write(dec2bcd(year)); // Year
-    I2C_Stop();
-
-    setMsg("DONE     ");
+            I2C_WriteBuff(0xD0, 0x00, write, 7);
+            rtc_setting_status = RTC_WRITING;
+            setMsg("WRITING  ");
+            break;
+            
+        case RTC_WRITING:
+            if (!I2C_isAvailable()) break;
+            setMsg("DONE     ");
+            rtc_setting_status = RTC_DONE;
+            break;
+            
+        case RTC_DONE:
+            break;
+            
+        default:
+            setMsg("ERROR!!!!");
+            break;
+    }
+    up_before = BUTTON_UP;
+    down_before = BUTTON_DOWN;
+    sel_before = BUTTON_SEL;
+    return;
 }
 
-int counter = 0;
-bool UART_ReadingNextValue = false;
-uint8_t digitSelector;    // 書き換え桁数
-uint32_t dotflag;  // ドットをつけるかどうか
 
 //次の桁を表示する
 void interrupt isr(void) {
     
-    
+    // UARTの処理
     if (PIR1bits.RCIF) {
-        PIR1bits.RCIF = 0;           //フラグを下げる
+        PIR1bits.RCIF = 0;
         
-        uint8_t RxData = RCREG;            // 受信データ用バッファ
-        
-        if (UART_ReadingNextValue == false) {
-            if ((RxData & 0b11100000) == 0b11100000) {
-                digitSelector = (RxData & 0b00001111);
-                dotflag = (RxData & 0b00010000) >> 4;
-                UART_ReadingNextValue = true;
-            }
+        uint8_t RxData = RCREG;
+        if (uartBuffIsWriteAble()) {
+												writeUartBuff(RxData);
         } else {
-            UART_ReadingNextValue = false;
-            if (digitSelector > 8) return;  // 無効な入力の処理
-            if (RxData > 0b01111111) RxData = ~RxData;
-            segMap[digitSelector] = ~(fontList[RxData] | (dotflag << 16)); // 値を実際にセット
+												//   ¯＼_(ツ)_／¯
         }
     }
     
     
-    
+    // タイマー0の処理
     if (INTCONbits.TMR0IF) {
         INTCONbits.TMR0IF = 0;    // フラグを下げる
         TMR0 = 0xFF - 125+1;
@@ -203,96 +262,4 @@ void interrupt isr(void) {
     #if defined(USB_INTERRUPT)
         USBDeviceTasks();
     #endif
-
-    if (DIP_SET_TIME) { // 時刻合わせMODE
-
-        switch (rtcSetState) {
-            case 0: // year
-                if ((BUTTON_UP != up_before) && !BUTTON_UP) year = (++year)%100;
-                if ((BUTTON_DOWN != down_before) && !BUTTON_DOWN) year = (--year)%100; 
-                if ((BUTTON_SEL != sel_before) && !BUTTON_SEL) rtcSetState++;
-                sprintf(buffer, "YEAR-20%02d", year);
-                setMsg(buffer);
-                break;
-            case 1: // mon
-                if ((BUTTON_UP != up_before) && !BUTTON_UP) mon = (++mon)%12;
-                if ((BUTTON_DOWN != down_before) && !BUTTON_DOWN) mon = (--mon)%12; 
-                if ((BUTTON_SEL != sel_before) && !BUTTON_SEL) rtcSetState++;
-                sprintf(buffer, "MON -  %2d", mon+1);
-                setMsg(buffer);
-                break;
-            case 2: // date
-                if ((BUTTON_UP != up_before) && !BUTTON_UP) date = (++date)%31;
-                if ((BUTTON_DOWN != down_before) && !BUTTON_DOWN) date = (--date)%31; 
-                if ((BUTTON_SEL != sel_before) && !BUTTON_SEL) rtcSetState++;
-                sprintf(buffer, "DATE-  %2d", date+1);
-                setMsg(buffer);
-                break;
-            case 3: // day
-                if ((BUTTON_UP != up_before) && !BUTTON_UP) day = (++day)%7;
-                if ((BUTTON_DOWN != down_before) && !BUTTON_DOWN) day = (--day)%7; 
-                if ((BUTTON_SEL != sel_before) && !BUTTON_SEL) rtcSetState++;
-                sprintf(buffer, "DAY -  %2d", day+1);
-                setMsg(buffer);
-                break;
-            case 4: // hour
-                if ((BUTTON_UP != up_before) && !BUTTON_UP) hour = (++hour)%24;
-                if ((BUTTON_DOWN != down_before) && !BUTTON_DOWN) hour = (--hour)%24; 
-                if ((BUTTON_SEL != sel_before) && !BUTTON_SEL) rtcSetState++;
-                sprintf(buffer, "HOUR-  %2d", hour);
-                setMsg(buffer);
-                break;
-            case 5: // min
-                if ((BUTTON_UP != up_before) && !BUTTON_UP) min = (++min)%60;
-                if ((BUTTON_DOWN != down_before) && !BUTTON_DOWN) min = (--min)%60; 
-                if ((BUTTON_SEL != sel_before) && !BUTTON_SEL) rtcSetState++;
-                sprintf(buffer, "MIN -  %2d", min);
-                setMsg(buffer);
-                break;
-            case 6: // sec
-                if ((BUTTON_UP != up_before) && !BUTTON_UP) sec = (++sec)%60;
-                if ((BUTTON_DOWN != down_before) && !BUTTON_DOWN) sec = (--sec)%60; 
-                if ((BUTTON_SEL != sel_before) && !BUTTON_SEL) {
-                    rtcSetState++;
-                    writeRTC();
-                    break;
-                }
-                sprintf(buffer, "SEC -  %2d", sec);
-                setMsg(buffer);
-                break;
-            case 7: // done
-                break;
-            default:
-                setMsg("ERROR!!!!");
-                break;
-        }
-
-        up_before = BUTTON_UP;
-        down_before = BUTTON_DOWN;
-        sel_before = BUTTON_SEL;
-        return;
-    }
-        
-    if (DIP_SHOW_TIME && ++counter == 99) {
-        counter = 0;
-        I2C_Start(0xD0);
-        I2C_Write(0x00);
-        I2C_Stop();
-
-        I2C_Start(0xD1);
-
-        uint8_t rtcdata[7];
-        for (int i = 0; i < 7; i++) {
-            rtcdata[i] = I2C_Read(i == 6);
-        }
-
-        I2C_Stop();
-
-        uint8_t buffer[10];
-        sprintf(buffer, "%02d%1d%02d%02d%02d", bcd2dec(rtcdata[4]), bcd2dec(rtcdata[3]), bcd2dec(rtcdata[2] & 0x3F), bcd2dec(rtcdata[1]), bcd2dec(rtcdata[0] & 0x7F));
-        setMsg(buffer);
-
-    }
-        
-        
 }

@@ -7,82 +7,201 @@
 
 #include "i2c.h"
 
+uint8_t i2c_buff[16];
+uint8_t i2c_count;
+uint8_t i2c_itr;
+
+uint8_t i2c_targetAddr;
+uint8_t i2c_dataAddr;
+
+enum I2C_Module_Status_t {
+    IDLE,
+    WRITE_START,
+    WRITE_TARGET,
+    WRITE_ADDR,
+    WRITE_CONTENT,
+    WRITE_STOP,
+    WRITE_CHECKSTOP,
+    
+    READ_START,
+    READ_SENDTARGET,
+    READ_SENDADDR,
+    READ_SENDSTOP,
+    READ_RESTART,
+    READ_READTARGET,
+    READ_READENABLE,
+    READ_CONTENT,
+    READ_ACK,
+    READ_NACK,
+    READ_STOP,
+    READ_CHECKSTOP,
+    READ_DONE
+} I2C_Module_Status;
+
 void I2C_Init() {
     TRISB0=1;		/* Set up I2C lines by setting as input */
     TRISB1=1;
     SSPSTAT=0x80;		/* Slew rate disabled, other bits are cleared */
-    SSPCON1=0x28;	/* Enable SSP port for I2C Master mode,
-			clock = FOSC / (4 * (SSPADD+1))*/ 
+    SSPCON1=0x28;	/* Enable SSP port for I2C Master mode, clock = FOSC / (4 * (SSPADD+1))*/ 
     SSPCON2=0;
     SSPADD=49;
-    SSPIE=1;		/* Enable SSPIF interrupt */
-    SSPIF=0;
 }
 
-char I2C_Start(char slave_write_address) {
-    SSPCON2bits.SEN=1;		/* Send start pulse */
-    while(SSPCON2bits.SEN);	/* Wait for completion of start pulse */
-    SSPIF=0;
-    if(!SSPSTATbits.S)		/* Check whether START detected last */
-    return 0;			/* Return 0 to indicate start failed */   
-    return (I2C_Write(slave_write_address));	/* Write slave device address
-						with write to communicate */
+bool I2C_isAvailable() {
+    return (I2C_Module_Status == IDLE);
 }
 
-void I2C_Ready() {
-    while(BCLIF);	/* Wait if bit collision interrupt flag is set*/
-
-    /* Wait for Buffer full and read write flag*/
-    while(SSPSTATbits.BF || (SSPSTATbits.R_nW));
-    SSPIF=0;  		/* Clear SSPIF interrupt flag*/
+int I2C_WriteBuff(uint8_t targetAddr, uint8_t dataAddr, uint8_t* input, uint8_t count) {
+    if (!I2C_isAvailable()) return -1; 
+    i2c_targetAddr = targetAddr;
+    i2c_dataAddr = dataAddr;
+    i2c_count = count;
+    i2c_itr = 0;
+    memcpy(i2c_buff, input, count);
+    I2C_Module_Status = WRITE_START;
+    return 0;
 }
 
-char I2C_Write(unsigned char data) {
-      SSPBUF=data;	/* Write data to SSPBUF*/
-      I2C_Ready();
-      if (ACKSTAT)	/* Check for acknowledge bit*/
-        return 1;
-      else
-        return 2;
+int I2C_RequestRead(uint8_t targetAddr, uint8_t dataAddr, uint8_t count) {
+    if (!I2C_isAvailable()) return -1; 
+    i2c_targetAddr = targetAddr;
+    i2c_dataAddr = dataAddr;
+    i2c_count = count;
+    i2c_itr = 0;
+    I2C_Module_Status = READ_START;
+    return 0;
 }
 
-char I2C_Stop() {
-    I2C_Ready();
-    PEN=1;		/* Stop communication*/
-    while(PEN);		/* Wait for end of stop pulse*/
-    SSPIF = 0;
-    if (!SSPSTATbits.P);/* Check whether STOP is detected last */
-    return 0;		/* If not return 0 to indicate start failed*/
+bool I2C_isReadable() {
+    return (I2C_Module_Status == READ_DONE);
 }
 
-/* Read data from location and send ack or nack depending upon parameter*/
-
-char I2C_Read(char flag) {
-        int buffer=0;
-        RCEN=1;			/* Enable receive */
-
-	/* Wait for buffer full flag which when complete byte received */
-        while(!SSPSTATbits.BF);
-        buffer=SSPBUF;		/* Copy SSPBUF to buffer */
-
-	/* Send acknowledgment or negative acknowledgment after read to 
-	continue or stop reading */
-        if(flag==0)
-            I2C_Ack();
-        else
-            I2C_Nack();
-        I2C_Ready();
-        return(buffer);
+uint8_t* I2C_ReadBuff() {
+    if (I2C_Module_Status != READ_DONE) return -1;
+    I2C_Module_Status = IDLE;
+    return i2c_buff;
 }
 
-void I2C_Ack() {
-    ACKDT=0;		/* Acknowledge data 1:NACK,0:ACK */
-    ACKEN=1;		/* Enable ACK to send */
-    while(ACKEN);
- }
 
-void I2C_Nack() {
-    ACKDT=1;		/* Acknowledge data 1:NACK,0:ACK */
-    ACKEN=1;		/* Enable ACK to send */
-    while(ACKEN);
+void I2C_Task() {
+    switch (I2C_Module_Status) {
+        case IDLE:
+            break;
+            
+        case WRITE_START:
+            SSPCON2bits.SEN = 1;
+            I2C_Module_Status = WRITE_TARGET;
+            break;
+            
+        case WRITE_TARGET:
+            if (SSPCON2bits.SEN) return;
+            SSPBUF = i2c_targetAddr;
+            I2C_Module_Status = WRITE_ADDR;
+            break;
+            
+        case WRITE_ADDR:
+            if (SSPSTATbits.BF || (SSPSTATbits.R_nW)) return;
+            SSPBUF = i2c_dataAddr;
+            I2C_Module_Status = WRITE_CONTENT;
+            break;
+            
+        case WRITE_CONTENT:
+            if (SSPSTATbits.BF || (SSPSTATbits.R_nW)) return;
+            SSPBUF = i2c_buff[i2c_itr++];
+            if (i2c_itr == i2c_count) I2C_Module_Status = WRITE_STOP;
+            break;
+            
+        case WRITE_STOP:
+            if (SSPSTATbits.BF || (SSPSTATbits.R_nW)) return;
+            PEN = 1;
+            I2C_Module_Status = WRITE_CHECKSTOP;
+            break;
+            
+        case WRITE_CHECKSTOP:
+            if (PEN) return;
+            I2C_Module_Status = IDLE;
+            break;
+        // --------------------------------------- :: READ :: ------
+        case READ_START:
+            SSPCON2bits.SEN = 1;
+            I2C_Module_Status = READ_SENDTARGET;
+            break;
+            
+        case READ_SENDTARGET:
+            if (SSPCON2bits.SEN) return;
+            SSPBUF = i2c_targetAddr;
+            I2C_Module_Status = READ_SENDADDR;
+            break;
+            
+        case READ_SENDADDR:
+            if (SSPSTATbits.BF || (SSPSTATbits.R_nW)) return;
+            SSPBUF = i2c_dataAddr;
+            I2C_Module_Status = READ_SENDSTOP;
+            break;
+            
+        case READ_SENDSTOP:
+            if (SSPSTATbits.BF || (SSPSTATbits.R_nW)) return;
+            PEN = 1;
+            I2C_Module_Status = READ_RESTART;
+            break;
+            
+        case READ_RESTART:
+            if (PEN) return;
+            SSPCON2bits.SEN = 1;
+            I2C_Module_Status = READ_READTARGET;
+            break;
+            
+        case READ_READTARGET:
+            if (SSPCON2bits.SEN) return;
+            SSPBUF = (i2c_targetAddr | 0x01);
+            I2C_Module_Status = READ_READENABLE;
+            break;
+            
+        case READ_READENABLE:
+            if (SSPSTATbits.BF || (SSPSTATbits.R_nW)) return;
+            RCEN = 1;
+            I2C_Module_Status = READ_CONTENT;
+            break;
+            
+        case READ_CONTENT:
+            if (!SSPSTATbits.BF) return;
+            i2c_buff[i2c_itr++] = SSPBUF;
+            if (i2c_itr == i2c_count) {
+                ACKDT = 1;		/* Acknowledge data 1:NACK,0:ACK */
+                I2C_Module_Status = READ_NACK;
+            } else {
+                ACKDT=0;		/* Acknowledge data 1:NACK,0:ACK */
+                I2C_Module_Status = READ_ACK;
+            }
+            ACKEN=1;		/* Enable ACK to send */
+            break;
+            
+        case READ_ACK:
+            if (ACKEN) return;
+            if (SSPSTATbits.BF || (SSPSTATbits.R_nW)) return;
+            RCEN = 1;
+            I2C_Module_Status = READ_CONTENT;
+            break;
+            
+        case READ_NACK:
+            if (ACKEN) return;
+            if (SSPSTATbits.BF || (SSPSTATbits.R_nW)) return;
+            I2C_Module_Status = READ_STOP;
+            break;
+            
+        case READ_STOP:
+            if (SSPSTATbits.BF || (SSPSTATbits.R_nW)) return;
+            PEN = 1;
+            I2C_Module_Status = READ_CHECKSTOP;
+            break;
+            
+        case READ_CHECKSTOP:
+            if (PEN) return;
+            SSPIF = 0;
+            I2C_Module_Status = READ_DONE;
+            break;
+            
+        case READ_DONE:
+            break;
+    }
 }

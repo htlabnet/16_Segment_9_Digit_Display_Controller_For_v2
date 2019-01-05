@@ -17,11 +17,7 @@
 #include <string.h>
 #include <stdbool.h>
 
-#include "segFonts.h"
 #include "system.h"
-#include "utilities.h"
-#include "i2c.h"
-#include "usb.h"
 #include "usb_device_hid.h"
 #include "app_device_custom_hid.h"
 #include "app_led_usb_status.h"
@@ -119,6 +115,8 @@ void main(void) {
     // LED制御のタイマー設定
     T0CON = 0b11000101; //Timer0 ON, 8Bit Mode, InternalClock, 1/64 Prescale
     TMR0 = 0xFF - 125+1;
+    
+    I2C_Init();
 
     //各種割り込み許可
     INTCONbits.TMR0IE = 1;
@@ -126,11 +124,10 @@ void main(void) {
     INTCONbits.GIE = 1;
 
     // UART設定
+				TXSTA   = 0b00000000;
     RCSTA   = 0b10010000;
-    BAUDCON = 0b00001000;
-    SPBRGH  = 0;
-    BRGH = 0;
-    SPBRG   = 129;
+    BAUDCON = 0b00000000;
+    SPBRG   = 77;
     PIE1bits.RCIE = 1;
     
     if (DIP_SHOW_ALL) {
@@ -151,7 +148,6 @@ void main(void) {
     USBDeviceInit();
     USBDeviceAttach();
     
-    I2C_Init();
     while (1){
         
         // DC-DC Converter
@@ -163,5 +159,9 @@ void main(void) {
         
         APP_DeviceCustomHIDTasks();
         
+								uart_task();
+        I2C_Task();
+        clock_task();
+        rtc_setting_task();
     }
 }
