@@ -5,17 +5,22 @@ using HidSharp;
 
 namespace _16SegController_UWP.Core.Tests.MSTest.Mock
 {
+    /// <summary>
+    ///  HIDSharpのHidDeviceクラスのモック
+    /// とりあえず動けば良い
+    /// </summary>
     class MockHidDevice : HidDevice
     {
         public MockHidDevice(int vendorId, int productId)
         {
+            // モックに任意のVendorsとProductIDを注入する
             ProductID = productId;
             VendorID = vendorId;
         }
 
         protected override DeviceStream OpenDeviceDirectly(OpenConfiguration openConfig)
         {
-            throw new NotImplementedException();
+            return new MockDeviceStream(this);
         }
 
         public override string GetFileSystemName()
@@ -41,12 +46,14 @@ namespace _16SegController_UWP.Core.Tests.MSTest.Mock
 
         public override int GetMaxInputReportLength()
         {
-            throw new NotImplementedException();
+            // 値は適当
+            return 100;
         }
 
         public override int GetMaxOutputReportLength()
         {
-            throw new NotImplementedException();
+            // 値は適当
+            return 100;
         }
 
         public override int GetMaxFeatureReportLength()

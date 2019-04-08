@@ -16,7 +16,7 @@ namespace _16SegController_UWP.Core.Models
             _deviceList = deviceList ?? DeviceList.Local;
         }
 
-        public bool QueryHidDevice(int vendorId, int productId)
+        public bool OpenHidDevice(int vendorId, int productId)
         {
             try
             {
@@ -25,12 +25,14 @@ namespace _16SegController_UWP.Core.Models
             }
             catch (InvalidOperationException)
             {
+                // 引数のデバイスが見つからない場合、First()で例外が出てくる
                 return false;
             }
 
             return true;
         }
 
+        // HIDデバイスに対して書き込んで読み込む
         public byte[] WriteAndReadByteHidDevice(byte[] dataBytes)
         {
             byte[] readBytes = null;
@@ -41,7 +43,6 @@ namespace _16SegController_UWP.Core.Models
                 {
                     hidStream.Write(dataBytes);
                     readBytes = hidStream.Read();
-
                 }
             }
 
