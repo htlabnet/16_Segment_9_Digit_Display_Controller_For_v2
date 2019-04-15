@@ -1,5 +1,4 @@
-﻿using System;
-using _16SegController_UWP.Core.Models;
+﻿using _16SegController_UWP.Core.Models;
 using _16SegController_UWP.Core.Tests.MSTest.Mock;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
