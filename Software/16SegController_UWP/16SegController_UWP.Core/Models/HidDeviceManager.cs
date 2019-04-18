@@ -32,8 +32,9 @@ namespace _16SegController_UWP.Core.Models
             return true;
         }
 
+
         // HIDデバイスに対して書き込んで読み込む
-        public byte[] WriteAndReadByteHidDevice(byte[] dataBytes)
+        public byte[] WriteByteHidDevice(byte[] dataBytes, bool withRead = true)
         {
             byte[] readBytes = null;
             if (_hidDevice == null) return null;
@@ -42,7 +43,10 @@ namespace _16SegController_UWP.Core.Models
                 using (hidStream)
                 {
                     hidStream.Write(dataBytes);
-                    readBytes = hidStream.Read();
+                    if (withRead)
+                    {
+                        readBytes = hidStream.Read();
+                    }
                 }
             }
 

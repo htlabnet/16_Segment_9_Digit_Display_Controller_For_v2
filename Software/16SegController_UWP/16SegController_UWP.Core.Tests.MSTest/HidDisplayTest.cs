@@ -1,6 +1,5 @@
 ﻿using System.Collections.Generic;
 using _16SegController_UWP.Core.Models;
-using _16SegController_UWP.Core.Models.Display;
 using _16SegController_UWP.Core.Models.Segment;
 using _16SegController_UWP.Core.Tests.MSTest.Mock;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -23,11 +22,11 @@ namespace _16SegController_UWP.Core.Tests.MSTest
 
 
             // 書き込むデータを作成する
-            var display = new DisplayBase();
+            var display = new Display();
             var data = display.BuildDisplayChar(0, new SegChar('a'));
             // 開いてから書き込んで読み込むと同じ結果が返ってくる
             hidDeviceManager.OpenHidDevice(0x4d8, 0x3f);
-            var ret = hidDeviceManager.WriteAndReadByteHidDevice(data);
+            var ret = hidDeviceManager.WriteByteHidDevice(data);
             CollectionAssert.AreEqual(ret, sample);
         }
 
@@ -58,7 +57,7 @@ namespace _16SegController_UWP.Core.Tests.MSTest
             var hidDeviceManager = new HidDeviceManager(mockHidList);
 
             // 書き込むデータを作成する
-            var display = new DisplayBase();
+            var display = new Display();
             var data = display.BuildDisplay(new List<SegChar>()
             {
                 new SegChar('A'),
@@ -73,7 +72,7 @@ namespace _16SegController_UWP.Core.Tests.MSTest
             });
             // 開いてから書き込んで読み込むと同じ結果が返ってくる
             hidDeviceManager.OpenHidDevice(0x4d8, 0x3f);
-            var ret = hidDeviceManager.WriteAndReadByteHidDevice(data);
+            var ret = hidDeviceManager.WriteByteHidDevice(data);
             CollectionAssert.AreEqual(ret, sample);
         }
     }

@@ -35,10 +35,10 @@ namespace _16SegController_UWP.Core.Tests.MSTest
             var hidDeviceManager = new HidDeviceManager(mockHidList);
 
             // Openする前に書き込もうとするとnullになる
-            Assert.AreEqual(null, hidDeviceManager.WriteAndReadByteHidDevice(sample));
+            Assert.AreEqual(null, hidDeviceManager.WriteByteHidDevice(sample));
             // 開いてから書き込んで読み込むと同じ結果が返ってくる
             hidDeviceManager.OpenHidDevice(0x4d8, 0x3f);
-            var ret = hidDeviceManager.WriteAndReadByteHidDevice(sample);
+            var ret = hidDeviceManager.WriteByteHidDevice(sample);
             CollectionAssert.AreEqual(ret, sample);
         }
     }
