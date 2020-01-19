@@ -102,8 +102,9 @@ namespace _16SegControl
             if (_tokenSource != null)
             {
                 _tokenSource.Cancel(true);
-                _task?.Wait();
+                if (_task?.IsCanceled == false) _task?.Wait();
             }
+            _tokenSource= new CancellationTokenSource();
         }
         
         /// <summary>
@@ -327,6 +328,8 @@ namespace _16SegControl
                     int i = 0;
                     while (true)
                     {
+                    	buffer.Clear();
+                    	buffer.Add(0);
                         // 先頭に戻る
                         if (i > segList.Count) i = 0;
                         // 型ごとにわける
