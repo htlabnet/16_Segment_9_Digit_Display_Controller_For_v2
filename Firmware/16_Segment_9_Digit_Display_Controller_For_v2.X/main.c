@@ -124,7 +124,7 @@ void main(void) {
     INTCONbits.GIE = 1;
 
     // UART設定
-				TXSTA   = 0b00000000;
+    TXSTA   = 0b00000000;
     RCSTA   = 0b10010000;
     BAUDCON = 0b00000000;
     SPBRG   = 77;
@@ -158,8 +158,7 @@ void main(void) {
         }
         
         APP_DeviceCustomHIDTasks();
-        
-								uart_task();
+        uart_task();
         I2C_Task();
         clock_task();
         rtc_setting_task();
